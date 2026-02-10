@@ -1,0 +1,61 @@
+import { useState, type ReactNode } from "react";
+import { Sidebar } from "./Sidebar";
+import { BottomNav } from "./BottomNav";
+import { SyncStatusIndicator } from "./SyncStatusIndicator";
+import { Menu, Store } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+
+interface AppLayoutProps {
+  children: ReactNode;
+  storeName?: string;
+}
+
+export function AppLayout({
+  children,
+  storeName = "StockFlow",
+}: AppLayoutProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  return (
+    <div className="flex min-h-screen w-full bg-background">
+      {/* Desktop Sidebar */}
+      <Sidebar storeName={storeName} />
+
+      {/* Mobile Header */}
+      <div className="flex flex-col flex-1 w-full">
+        <header className="md:hidden sticky top-0 z-40 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <button className="p-2 -ml-2 hover:bg-secondary rounded-lg transition-colors touch-target">
+                <Menu className="h-5 w-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="w-64 p-0 bg-sidebar text-sidebar-foreground border-sidebar-border"
+            >
+              <Sidebar storeName={storeName} />
+            </SheetContent>
+          </Sheet>
+
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
+              <Store className="h-3.5 w-3.5 text-primary-foreground" />
+            </div>
+            <span className="font-semibold text-sm">{storeName}</span>
+          </div>
+
+          <SyncStatusIndicator />
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 pb-20 md:pb-0 overflow-y-auto md:h-screen">
+          {children}
+        </main>
+
+        {/* Bottom Nav (Mobile Only) */}
+        <BottomNav />
+      </div>
+    </div>
+  );
+}
