@@ -39,7 +39,8 @@ export function useProducts(filters: ProductFilters) {
         if (filters.stockStatus === "out-of-stock") return p.stock === 0;
         if (filters.stockStatus === "low-stock")
           return p.stock > 0 && p.stock <= 5;
-        if (filters.stockStatus === "in-stock") return p.stock > 5;
+        // "In Stock" should include any available inventory.
+        if (filters.stockStatus === "in-stock") return p.stock > 0;
         return true;
       });
     }

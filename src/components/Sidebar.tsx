@@ -31,7 +31,8 @@ export function Sidebar({ storeName = "StockFlow" }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col bg-sidebar text-sidebar-foreground h-screen sticky top-0 transition-all duration-300",
+        "hidden md:flex flex-col bg-sidebar text-sidebar-foreground h-screen sticky top-0 transition-all duration-300 border-r border-sidebar-border",
+        "bg-gradient-to-b from-sidebar to-[color:oklch(0.2_0.04_270)]",
         collapsed ? "w-16" : "w-64",
       )}
     >
@@ -43,8 +44,8 @@ export function Sidebar({ storeName = "StockFlow" }: SidebarProps) {
             collapsed && "justify-center w-full",
           )}
         >
-          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-            <Store className="h-4 w-4 text-sidebar-primary-foreground" />
+          <div className="w-9 h-9 rounded-full bg-sidebar-primary/20 border border-sidebar-primary/30 flex items-center justify-center">
+            <Store className="h-4 w-4 text-sidebar-primary" />
           </div>
           {!collapsed && (
             <div className="flex flex-col">
@@ -78,9 +79,10 @@ export function Sidebar({ storeName = "StockFlow" }: SidebarProps) {
               key={item.path}
               to={item.path}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                "hover:bg-sidebar-accent",
-                isActive && "bg-sidebar-accent text-sidebar-primary",
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                isActive &&
+                  "bg-sidebar-accent text-sidebar-primary shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]",
                 collapsed && "justify-center",
               )}
             >
@@ -98,7 +100,7 @@ export function Sidebar({ storeName = "StockFlow" }: SidebarProps) {
         <div
           className={cn("flex", collapsed ? "justify-center" : "justify-start")}
         >
-          <SyncStatusIndicator />
+          <SyncStatusIndicator iconOnly={collapsed} />
         </div>
 
         {collapsed ? (
@@ -118,7 +120,7 @@ export function Sidebar({ storeName = "StockFlow" }: SidebarProps) {
                 variant="ghost"
                 size="sm"
                 onClick={signOut}
-                className="w-full text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                className="w-full text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-xl"
               >
                 Sign Out
               </Button>

@@ -1,6 +1,8 @@
 import { Search, X, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProductFilters } from "@/hooks/useProducts";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface SearchFilterBarProps {
   filters: ProductFilters;
@@ -20,6 +22,8 @@ export function SearchFilterBar({
   categories,
   onFiltersChange,
 }: SearchFilterBarProps) {
+  const [showFilters, setShowFilters] = useState(false);
+
   const updateFilters = (updates: Partial<ProductFilters>) => {
     onFiltersChange({ ...filters, ...updates });
   };
@@ -30,6 +34,8 @@ export function SearchFilterBar({
 
   const hasActiveFilters =
     filters.search || filters.category || filters.stockStatus !== "all";
+  const activeCount =
+    Number(Boolean(filters.category)) + Number(filters.stockStatus !== "all");
 
   return (
     <div className="space-y-3">
@@ -53,60 +59,81 @@ export function SearchFilterBar({
         )}
       </div>
 
-      {/* Filter Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-        <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-
-        {/* Stock Status Filters */}
-        {stockStatusOptions.map((option) => (
-          <button
-            key={option.value}
-            onClick={() => updateFilters({ stockStatus: option.value })}
-            className={cn(
-              "filter-chip whitespace-nowrap",
-              filters.stockStatus === option.value && "filter-chip-active",
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
-
-        <div className="w-px h-5 bg-border flex-shrink-0" />
-
-        {/* Category Filters */}
-        <button
-          onClick={() => updateFilters({ category: null })}
-          className={cn(
-            "filter-chip whitespace-nowrap",
-            !filters.category && "filter-chip-active",
-          )}
+      {/* Filters Toggle */}
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setShowFilters((prev) => !prev)}
+          className="rounded-full"
         >
-          All Categories
-        </button>
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => updateFilters({ category: cat })}
-            className={cn(
-              "filter-chip whitespace-nowrap",
-              filters.category === cat && "filter-chip-active",
-            )}
-          >
-            {cat}
-          </button>
-        ))}
+          <Filter className="mr-2 h-4 w-4" />
+          Filters
+          {activeCount > 0 && (
+            <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
+              {activeCount}
+            </span>
+          )}
+        </Button>
 
-        {/* Clear All */}
         {hasActiveFilters && (
-          <button
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
             onClick={clearFilters}
-            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 flex-shrink-0"
+            className="rounded-full text-xs"
           >
             <X className="h-3 w-3" />
             Clear
-          </button>
+          </Button>
         )}
       </div>
+
+      {/* Filter Chips Panel */}
+      {showFilters && (
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1 animate-fade-in">
+          {/* Stock Status Filters */}
+          {stockStatusOptions.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => updateFilters({ stockStatus: option.value })}
+              className={cn(
+                "filter-chip whitespace-nowrap",
+                filters.stockStatus === option.value && "filter-chip-active",
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+
+          <div className="w-px h-5 bg-border flex-shrink-0" />
+
+          {/* Category Filters */}
+          <button
+            onClick={() => updateFilters({ category: null })}
+            className={cn(
+              "filter-chip whitespace-nowrap",
+              !filters.category && "filter-chip-active",
+            )}
+          >
+            All Categories
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => updateFilters({ category: cat })}
+              className={cn(
+                "filter-chip whitespace-nowrap",
+                filters.category === cat && "filter-chip-active",
+              )}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
