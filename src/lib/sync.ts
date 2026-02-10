@@ -50,7 +50,7 @@ export async function queueInventoryEvent(
 
   // Try to sync if online
   if (isOnline()) {
-    syncEvents();
+    void syncEvents();
   }
 
   return { success: true };
@@ -94,14 +94,18 @@ export async function syncEvents(): Promise<{
       }
 
       const result = data?.[0];
+      if (!result) {
+        throw new Error("Inventory RPC returned no result");
+      }
 
-      if (result?.event_status === "conflict") {
+      if (result.event_status === "conflict") {
         await db.eventQueue.update(event.id!, {
           status: "conflict",
           errorMessage: result.error_message || "Conflict occurred",
         });
         conflicts++;
       } else {
+        await db.products.update(event.productId, { stock: result.new_stock });
         await db.eventQueue.update(event.id!, { status: "synced" });
         synced++;
       }
@@ -121,7 +125,13 @@ export async function syncEvents(): Promise<{
   const hasConflicts =
     conflicts > 0 ||
     (await db.eventQueue.where("status").equals("conflict").count()) > 0;
-  await updateSyncState(hasConflicts ? "conflict" : "synced");
+  const remainingPending = await db.eventQueue
+    .where("status")
+    .anyOf(["pending", "syncing"])
+    .count();
+  await updateSyncState(
+    hasConflicts ? "conflict" : remainingPending > 0 ? "syncing" : "synced",
+  );
 
   return { synced, conflicts };
 }
@@ -149,6 +159,20 @@ export async function refreshProductCache(): Promise<void> {
       snapshots?.map((s) => [s.product_id, s.stock]) || [],
     );
 
+    // Apply optimistic deltas from pending local events so UI does not
+    // "revert" while events are waiting to sync.
+    const pendingEvents = await db.eventQueue
+      .where("status")
+      .anyOf(["pending", "syncing"])
+      .toArray();
+    const pendingDeltaLookup = new Map<string, number>();
+    for (const event of pendingEvents) {
+      pendingDeltaLookup.set(
+        event.productId,
+        (pendingDeltaLookup.get(event.productId) ?? 0) + event.qtyChange,
+      );
+    }
+
     // Transform and cache
     const cachedProducts: CachedProduct[] = (products || []).map((p) => ({
       id: p.id,
@@ -160,7 +184,7 @@ export async function refreshProductCache(): Promise<void> {
       price: Number(p.price),
       cost: p.cost ? Number(p.cost) : null,
       image_url: p.image_url,
-      stock: stockLookup.get(p.id) || 0,
+      stock: (stockLookup.get(p.id) ?? 0) + (pendingDeltaLookup.get(p.id) ?? 0),
       created_at: p.created_at,
       updated_at: p.updated_at,
     }));
@@ -190,6 +214,12 @@ export async function getSyncStatus(): Promise<SyncStatus> {
   const hasConflicts =
     (await db.eventQueue.where("status").equals("conflict").count()) > 0;
   if (hasConflicts) return "conflict";
+
+  const pendingCount = await db.eventQueue
+    .where("status")
+    .anyOf(["pending", "syncing"])
+    .count();
+  if (pendingCount > 0) return "syncing";
 
   return state.status;
 }
