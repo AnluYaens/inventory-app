@@ -33,6 +33,7 @@ export interface SyncState {
   id: string;
   lastSyncAt: string | null;
   status: "offline" | "syncing" | "synced" | "conflict";
+  lastError?: string | null;
 }
 
 export interface LocalSettings {

@@ -2,8 +2,25 @@ import { db, getDeviceId, generateLocalEventId } from "./db";
 import type { CachedProduct, QueuedEvent } from "./db";
 import { supabase } from "@/integrations/supabase/client";
 
+let inFlightSync: Promise<{ synced: number; conflicts: number }> | null = null;
+
 export type { QueuedEvent };
 export type SyncStatus = "offline" | "syncing" | "synced" | "conflict";
+
+function formatSyncError(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "object" && err != null) {
+    const e = err as Record<string, unknown>;
+    return JSON.stringify({
+      message: e.message,
+      code: e.code,
+      details: e.details,
+      hint: e.hint,
+      status: e.status,
+    });
+  }
+  return String(err);
+}
 
 // Check online status
 export function isOnline(): boolean {
@@ -23,12 +40,12 @@ export async function queueInventoryEvent(
   // Get current product from cache
   const product = await db.products.get(productId);
   if (!product) {
-    return { success: false, error: "Product not found" };
+    return { success: false, error: "Producto no encontrado" };
   }
 
   // For sales, check if we have enough stock locally
   if (type === "sale" && product.stock + qtyChange < 0) {
-    return { success: false, error: "Insufficient stock" };
+    return { success: false, error: "Stock insuficiente" };
   }
 
   // Update local stock optimistically
@@ -61,15 +78,25 @@ export async function syncEvents(): Promise<{
   synced: number;
   conflicts: number;
 }> {
+  if (inFlightSync) return inFlightSync;
+  inFlightSync = runSyncEvents();
+  try {
+    return await inFlightSync;
+  } finally {
+    inFlightSync = null;
+  }
+}
+
+async function runSyncEvents(): Promise<{ synced: number; conflicts: number }> {
   if (!isOnline()) {
     return { synced: 0, conflicts: 0 };
   }
 
-  await updateSyncState("syncing");
+  await updateSyncState("syncing", null);
 
   const pendingEvents = await db.eventQueue
     .where("status")
-    .equals("pending")
+    .anyOf(["pending", "syncing"])
     .toArray();
 
   let synced = 0;
@@ -87,6 +114,7 @@ export async function syncEvents(): Promise<{
         p_qty_change: event.qtyChange,
         p_note: event.note ?? undefined,
         p_device_id: event.deviceId,
+        p_local_id: event.localId,
       });
 
       if (error) {
@@ -95,13 +123,13 @@ export async function syncEvents(): Promise<{
 
       const result = data?.[0];
       if (!result) {
-        throw new Error("Inventory RPC returned no result");
+        throw new Error("El RPC de inventario no retorno resultado");
       }
 
       if (result.event_status === "conflict") {
         await db.eventQueue.update(event.id!, {
           status: "conflict",
-          errorMessage: result.error_message || "Conflict occurred",
+          errorMessage: result.error_message || "Ocurrio un conflicto",
         });
         conflicts++;
       } else {
@@ -110,11 +138,19 @@ export async function syncEvents(): Promise<{
         synced++;
       }
     } catch (err) {
-      console.error("Failed to sync event:", err);
+      const formatted = formatSyncError(err);
+      console.error("Failed to sync event", {
+        eventId: event.id,
+        localId: event.localId,
+        productId: event.productId,
+        formatted,
+        raw: err,
+      });
       await db.eventQueue.update(event.id!, {
         status: "pending",
-        errorMessage: err instanceof Error ? err.message : "Unknown error",
+        errorMessage: formatted,
       });
+      await updateSyncState("syncing", formatted);
     }
   }
 
@@ -131,6 +167,7 @@ export async function syncEvents(): Promise<{
     .count();
   await updateSyncState(
     hasConflicts ? "conflict" : remainingPending > 0 ? "syncing" : "synced",
+    null,
   );
 
   return { synced, conflicts };
@@ -198,6 +235,7 @@ export async function refreshProductCache(): Promise<void> {
       id: "main",
       lastSyncAt: new Date().toISOString(),
       status: "synced",
+      lastError: null,
     });
   } catch (err) {
     console.error("Failed to refresh cache:", err);
@@ -225,17 +263,46 @@ export async function getSyncStatus(): Promise<SyncStatus> {
 }
 
 // Update sync state
-async function updateSyncState(status: SyncStatus): Promise<void> {
+async function updateSyncState(
+  status: SyncStatus,
+  lastError: string | null = null,
+): Promise<void> {
   await db.syncState.put({
     id: "main",
     lastSyncAt: status === "synced" ? new Date().toISOString() : null,
     status,
+    lastError,
   });
 }
 
 // Get pending events count
 export async function getPendingEventsCount(): Promise<number> {
   return db.eventQueue.where("status").anyOf(["pending", "syncing"]).count();
+}
+
+// Get latest sync error for support/troubleshooting
+export async function getLastSyncError(): Promise<string | null> {
+  const state = await db.syncState.get("main");
+  if (state?.lastError) {
+    return state.lastError;
+  }
+
+  const withError = await db.eventQueue
+    .filter(
+      (event) =>
+        Boolean(event.errorMessage) &&
+        (event.status === "pending" ||
+          event.status === "syncing" ||
+          event.status === "conflict"),
+    )
+    .toArray();
+
+  if (withError.length === 0) {
+    return null;
+  }
+
+  withError.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return withError[0]?.errorMessage ?? null;
 }
 
 // Get conflict events

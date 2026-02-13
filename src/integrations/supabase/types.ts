@@ -19,6 +19,7 @@ export type Database = {
           created_at: string;
           device_id: string | null;
           id: string;
+          local_event_id: string | null;
           note: string | null;
           product_id: string;
           qty_change: number;
@@ -30,6 +31,7 @@ export type Database = {
           created_at?: string;
           device_id?: string | null;
           id?: string;
+          local_event_id?: string | null;
           note?: string | null;
           product_id: string;
           qty_change: number;
@@ -41,6 +43,7 @@ export type Database = {
           created_at?: string;
           device_id?: string | null;
           id?: string;
+          local_event_id?: string | null;
           note?: string | null;
           product_id?: string;
           qty_change?: number;
@@ -197,6 +200,7 @@ export type Database = {
       apply_inventory_event: {
         Args: {
           p_device_id?: string;
+          p_local_id?: string;
           p_note?: string;
           p_product_id: string;
           p_qty_change: number;
