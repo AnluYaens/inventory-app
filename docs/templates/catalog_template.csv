@@ -1,0 +1,4 @@
+sku,name,category,size,color,price,cost,initial_stock,image_filename
+SKU-001,Blusa Satinada,Tops,S,Negro,35.00,18.00,8,SKU-001.jpg
+SKU-002,Blusa Satinada,Tops,M,Negro,35.00,18.00,6,SKU-002.jpg
+SKU-003,Falda Plisada,Faldas,M,Crema,42.00,21.50,4,SKU-003.jpg

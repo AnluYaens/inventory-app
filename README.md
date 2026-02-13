@@ -28,6 +28,7 @@ npm run dev
 Run this SQL in Supabase SQL Editor:
 
 - `supabase/migrations/20260209_000001_init_stockflow.sql`
+- `supabase/migrations/20260213_000002_inventory_event_idempotency.sql`
 
 Why this script is production-safe:
 - It uses `create ... if not exists` where possible.
@@ -56,6 +57,54 @@ npm run build
 Important:
 - Never expose `SUPABASE_SERVICE_ROLE_KEY` in frontend env vars.
 - Use only the publishable/anon key on the client.
+
+## One-time catalog import (client handoff)
+
+This repo includes a strict fail-fast import pipeline for launch data.
+
+Required env vars for scripts:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+Upload images to Supabase Storage and generate manifest:
+
+```bash
+npm run upload:images -- --dir ./client-assets/photos --bucket product-images --output images-manifest.json
+```
+
+Dry-run catalog import:
+
+```bash
+npm run import:catalog -- --file ./client-assets/catalog.csv --mode dry-run --images-manifest ./images-manifest.json
+```
+
+Apply catalog import:
+
+```bash
+npm run import:catalog -- --file ./client-assets/catalog.csv --mode apply --images-manifest ./images-manifest.json
+```
+
+Detailed docs:
+- `docs/IMPORT_MAPPING_SPEC_ES.md`
+- `docs/CLIENT_HANDOFF_RUNBOOK_ES.md`
+- `docs/SUPPORT_WEEK1_CHECKLIST_ES.md`
+
+## PDF catalog extraction (staging)
+
+If the client provides a PDF catalog, generate staging artifacts first:
+
+```bash
+npm run extract:catalog-pdf -- --pdf "C:\\ruta\\CATALOGO.pdf"
+```
+
+This produces:
+- `artifacts/catalog_staging.csv`
+- `artifacts/image-map-review.csv`
+- `artifacts/extraction-report.json`
+- `artifacts/extracted-images/`
 
 ## PWA install
 
