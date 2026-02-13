@@ -7,10 +7,10 @@ import { Store, Mail, Lock, User, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
-const emailSchema = z.string().email("Invalid email address");
+const emailSchema = z.string().email("Correo electronico invalido");
 const passwordSchema = z
   .string()
-  .min(6, "Password must be at least 6 characters");
+  .min(6, "La clave debe tener al menos 6 caracteres");
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -52,24 +52,24 @@ export default function AuthPage() {
         const { error } = await signIn(email, password);
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
-            toast.error("Invalid email or password");
+            toast.error("Correo o clave incorrectos");
           } else {
             toast.error(error.message);
           }
         } else {
-          toast.success("Welcome back!");
+          toast.success("Bienvenida de nuevo");
           navigate("/");
         }
       } else {
         const { error } = await signUp(email, password, fullName);
         if (error) {
           if (error.message.includes("already registered")) {
-            toast.error("This email is already registered");
+            toast.error("Este correo ya esta registrado");
           } else {
             toast.error(error.message);
           }
         } else {
-          toast.success("Check your email to confirm your account");
+          toast.success("Revisa tu correo para confirmar tu cuenta");
         }
       }
     } finally {
@@ -87,7 +87,7 @@ export default function AuthPage() {
           </div>
           <h1 className="text-2xl font-bold">StockFlow</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {isLogin ? "Sign in to your account" : "Create your account"}
+            {isLogin ? "Inicia sesion en tu cuenta" : "Crea tu cuenta"}
           </p>
         </div>
 
@@ -96,14 +96,14 @@ export default function AuthPage() {
           {!isLogin && (
             <div className="space-y-2">
               <label htmlFor="fullName" className="text-sm font-medium">
-                Full Name
+                Nombre completo
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="fullName"
                   type="text"
-                  placeholder="John Doe"
+                  placeholder="Nombre Apellido"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="pl-10"
@@ -114,7 +114,7 @@ export default function AuthPage() {
 
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
-              Email
+              Correo
             </label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -137,7 +137,7 @@ export default function AuthPage() {
 
           <div className="space-y-2">
             <label htmlFor="password" className="text-sm font-medium">
-              Password
+              Clave
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -162,12 +162,12 @@ export default function AuthPage() {
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {isLogin ? "Signing in..." : "Creating account..."}
+                {isLogin ? "Iniciando sesion..." : "Creando cuenta..."}
               </>
             ) : isLogin ? (
-              "Sign In"
+              "Iniciar sesion"
             ) : (
-              "Create Account"
+              "Crear cuenta"
             )}
           </Button>
         </form>
@@ -183,8 +183,8 @@ export default function AuthPage() {
             className="text-sm text-primary hover:underline"
           >
             {isLogin
-              ? "Don't have an account? Sign up"
-              : "Already have an account? Sign in"}
+              ? "No tienes cuenta? Registrate"
+              : "Ya tienes cuenta? Inicia sesion"}
           </button>
         </div>
       </div>

@@ -35,11 +35,11 @@ function getStockStatus(stock: number): "high" | "low" | "out" {
 function getStockLabel(status: "high" | "low" | "out"): string {
   switch (status) {
     case "out":
-      return "Out of stock";
+      return "Sin stock";
     case "low":
-      return "Low stock";
+      return "Stock bajo";
     case "high":
-      return "In stock";
+      return "Con stock";
   }
 }
 
@@ -58,16 +58,16 @@ export function ProductCard({
 
   const handleSell = async () => {
     if (product.stock <= 0) {
-      toast.error("Cannot sell - out of stock");
+      toast.error("No se puede vender: sin stock");
       return;
     }
     setLoading("sell");
     const result = await onSell();
     setLoading(null);
     if (!result.success) {
-      toast.error(result.error || "Failed to record sale");
+      toast.error(result.error || "No se pudo registrar la venta");
     } else {
-      toast.success("Sale recorded");
+      toast.success("Venta registrada");
     }
   };
 
@@ -76,16 +76,16 @@ export function ProductCard({
     const result = await onRestock(1);
     setLoading(null);
     if (!result.success) {
-      toast.error(result.error || "Failed to restock");
+      toast.error(result.error || "No se pudo reponer stock");
     } else {
-      toast.success("Restocked +1");
+      toast.success("Stock repuesto +1");
     }
   };
 
   const handleAdjust = async () => {
     const qty = parseInt(adjustQty);
     if (isNaN(qty) || qty === 0) {
-      toast.error("Enter a valid quantity");
+      toast.error("Ingresa una cantidad valida");
       return;
     }
     setLoading("adjust");
@@ -95,14 +95,14 @@ export function ProductCard({
     setAdjustQty("");
     setAdjustNote("");
     if (!result.success) {
-      toast.error(result.error || "Failed to adjust");
+      toast.error(result.error || "No se pudo ajustar el stock");
     } else {
-      toast.success(`Stock adjusted by ${qty > 0 ? "+" : ""}${qty}`);
+      toast.success(`Stock ajustado en ${qty > 0 ? "+" : ""}${qty}`);
     }
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("es-US", {
       style: "currency",
       currency: "USD",
     }).format(price);
@@ -175,7 +175,7 @@ export function ProductCard({
                       {getStockLabel(stockStatus)}
                     </>
                   ) : (
-                    <>{product.stock} in stock</>
+                    <>{product.stock} en stock</>
                   )}
                 </span>
               </div>
@@ -185,7 +185,7 @@ export function ProductCard({
                   onClick={handleRestock}
                   disabled={loading === "restock"}
                   className="action-btn action-btn-restock"
-                  title="Restock +1"
+                  title="Reponer +1"
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -196,14 +196,14 @@ export function ProductCard({
                     "action-btn action-btn-sell",
                     product.stock <= 0 && "opacity-50 cursor-not-allowed",
                   )}
-                  title="Sell 1"
+                  title="Vender 1"
                 >
                   <Minus className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setAdjustOpen(true)}
                   className="action-btn action-btn-adjust"
-                  title="Adjust"
+                  title="Ajustar"
                 >
                   <SlidersHorizontal className="h-4 w-4" />
                 </button>
@@ -217,31 +217,30 @@ export function ProductCard({
       <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Adjust Stock</DialogTitle>
+            <DialogTitle>Ajustar stock</DialogTitle>
             <DialogDescription>
-              Adjust inventory for {product.name}. Current stock:{" "}
-              {product.stock}
+              Ajusta inventario para {product.name}. Stock actual: {product.stock}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="qty">Quantity Change</Label>
+              <Label htmlFor="qty">Cambio de cantidad</Label>
               <Input
                 id="qty"
                 type="number"
-                placeholder="+10 or -5"
+                placeholder="+10 o -5"
                 value={adjustQty}
                 onChange={(event) => setAdjustQty(event.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Enter positive number to add stock, negative to remove
+                Usa positivo para sumar stock y negativo para restar
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="note">Note (optional)</Label>
+              <Label htmlFor="note">Nota (opcional)</Label>
               <Textarea
                 id="note"
-                placeholder="Reason for adjustment..."
+                placeholder="Motivo del ajuste..."
                 value={adjustNote}
                 onChange={(event) => setAdjustNote(event.target.value)}
                 rows={2}
@@ -250,10 +249,10 @@ export function ProductCard({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAdjustOpen(false)}>
-              Cancel
+              Cancelar
             </Button>
             <Button onClick={handleAdjust} disabled={loading === "adjust"}>
-              {loading === "adjust" ? "Adjusting..." : "Apply Adjustment"}
+              {loading === "adjust" ? "Ajustando..." : "Aplicar ajuste"}
             </Button>
           </DialogFooter>
         </DialogContent>

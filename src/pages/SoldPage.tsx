@@ -6,6 +6,7 @@ import { DateFilterBar } from "@/components/DateFilterBar";
 import { useSalesHistory, type DateFilter } from "@/hooks/useSalesHistory";
 import { Loader2, ShoppingBag } from "lucide-react";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { useSync } from "@/contexts/SyncContext";
 
 export default function SoldPage() {
@@ -18,10 +19,10 @@ export default function SoldPage() {
       <div className="p-4 space-y-4 max-w-4xl mx-auto">
         {/* Header */}
         <div>
-          <h1 className="text-xl font-bold">Sales</h1>
+          <h1 className="text-xl font-bold">Ventas</h1>
           <p className="text-sm text-muted-foreground">
-            {format(dateRange.start, "MMM d")} -{" "}
-            {format(dateRange.end, "MMM d, yyyy")}
+            {format(dateRange.start, "d MMM", { locale: es })} -{" "}
+            {format(dateRange.end, "d MMM, yyyy", { locale: es })}
           </p>
         </div>
 
@@ -36,15 +37,15 @@ export default function SoldPage() {
             <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mb-4 mx-auto">
               <ShoppingBag className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="font-medium mb-1">Offline Mode</h3>
+            <h3 className="font-medium mb-1">Modo sin conexion</h3>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-              Sales history requires an internet connection
+              El historial de ventas requiere internet
             </p>
           </div>
         ) : loading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-            <p className="text-sm text-muted-foreground">Loading sales...</p>
+            <p className="text-sm text-muted-foreground">Cargando ventas...</p>
           </div>
         ) : (
           <>
@@ -56,7 +57,7 @@ export default function SoldPage() {
 
             {/* Sales List */}
             <div className="mt-6">
-              <h2 className="font-semibold mb-3">Transactions</h2>
+              <h2 className="font-semibold mb-3">Transacciones</h2>
               <SalesList sales={sales} />
             </div>
           </>

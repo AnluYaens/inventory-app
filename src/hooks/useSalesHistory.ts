@@ -99,7 +99,7 @@ export function useSalesHistory(
           return {
             id: row.id,
             productId: row.product_id,
-            productName: product?.name ?? "Unknown",
+            productName: product?.name ?? "Desconocido",
             productSku: product?.sku ?? "",
             productPrice: Number(product?.price ?? 0),
             qtyChange: row.qty_change,
@@ -109,7 +109,7 @@ export function useSalesHistory(
 
         setSales(formattedSales);
       } catch (err) {
-        console.error("Failed to fetch sales:", err);
+        console.error("No se pudo cargar el historial de ventas:", err);
       } finally {
         setLoading(false);
       }

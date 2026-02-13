@@ -11,10 +11,10 @@ interface SearchFilterBarProps {
 }
 
 const stockStatusOptions = [
-  { value: "all", label: "All" },
-  { value: "in-stock", label: "In Stock" },
-  { value: "low-stock", label: "Low Stock" },
-  { value: "out-of-stock", label: "Out of Stock" },
+  { value: "all", label: "Todos" },
+  { value: "in-stock", label: "Con stock" },
+  { value: "low-stock", label: "Stock bajo" },
+  { value: "out-of-stock", label: "Sin stock" },
 ] as const;
 
 export function SearchFilterBar({
@@ -44,7 +44,7 @@ export function SearchFilterBar({
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Search products, SKU..."
+          placeholder="Buscar productos o SKU..."
           value={filters.search}
           onChange={(e) => updateFilters({ search: e.target.value })}
           className="search-input pl-10 pr-10"
@@ -69,7 +69,7 @@ export function SearchFilterBar({
           className="rounded-full"
         >
           <Filter className="mr-2 h-4 w-4" />
-          Filters
+          Filtros
           {activeCount > 0 && (
             <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">
               {activeCount}
@@ -86,7 +86,7 @@ export function SearchFilterBar({
             className="rounded-full text-xs"
           >
             <X className="h-3 w-3" />
-            Clear
+            Limpiar
           </Button>
         )}
       </div>
@@ -118,7 +118,7 @@ export function SearchFilterBar({
               !filters.category && "filter-chip-active",
             )}
           >
-            All Categories
+            Todas las categorias
           </button>
           {categories.map((cat) => (
             <button

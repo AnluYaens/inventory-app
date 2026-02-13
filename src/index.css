@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Sora:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "shadcn/tailwind.css";
 
@@ -47,37 +48,37 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.972 0.006 255);
-  --foreground: oklch(0.22 0.03 258);
-  --card: oklch(0.998 0.002 250);
-  --card-foreground: oklch(0.22 0.03 258);
-  --popover: oklch(0.998 0.002 250);
-  --popover-foreground: oklch(0.22 0.03 258);
-  --primary: oklch(0.73 0.11 178);
-  --primary-foreground: oklch(0.99 0.004 250);
-  --secondary: oklch(0.95 0.01 252);
-  --secondary-foreground: oklch(0.32 0.04 258);
-  --muted: oklch(0.95 0.01 252);
-  --muted-foreground: oklch(0.55 0.03 257);
-  --accent: oklch(0.94 0.013 255);
-  --accent-foreground: oklch(0.32 0.04 258);
-  --destructive: oklch(0.62 0.22 25);
-  --border: oklch(0.9 0.01 255);
-  --input: oklch(0.9 0.01 255);
-  --ring: oklch(0.73 0.11 178);
-  --chart-1: oklch(0.73 0.11 178);
-  --chart-2: oklch(0.66 0.11 230);
-  --chart-3: oklch(0.71 0.16 80);
-  --chart-4: oklch(0.64 0.18 25);
-  --chart-5: oklch(0.56 0.14 320);
-  --sidebar: oklch(0.22 0.045 268);
-  --sidebar-foreground: oklch(0.96 0.015 250);
-  --sidebar-primary: oklch(0.8 0.11 177);
-  --sidebar-primary-foreground: oklch(0.2 0.04 260);
-  --sidebar-accent: oklch(0.31 0.05 268);
-  --sidebar-accent-foreground: oklch(0.97 0.01 248);
-  --sidebar-border: oklch(0.34 0.05 266);
-  --sidebar-ring: oklch(0.8 0.11 177);
+  --background: #faf5e0;
+  --foreground: #5a453a;
+  --card: #fffbf3;
+  --card-foreground: #5a453a;
+  --popover: #fffbf3;
+  --popover-foreground: #5a453a;
+  --primary: #e58b67;
+  --primary-foreground: #ffffff;
+  --secondary: #ffdca6;
+  --secondary-foreground: #6b523e;
+  --muted: #f8ebcd;
+  --muted-foreground: #8a6b57;
+  --accent: #fac6d3;
+  --accent-foreground: #6f4a54;
+  --destructive: #c84f4f;
+  --border: #ead8b6;
+  --input: #ead8b6;
+  --ring: #e58b67;
+  --chart-1: #e58b67;
+  --chart-2: #85c7d6;
+  --chart-3: #ffdca6;
+  --chart-4: #fac6d3;
+  --chart-5: #b99680;
+  --sidebar: #4e8fa4;
+  --sidebar-foreground: #eff9fc;
+  --sidebar-primary: #85c7d6;
+  --sidebar-primary-foreground: #163846;
+  --sidebar-accent: #6ca8ba;
+  --sidebar-accent-foreground: #f3fbfd;
+  --sidebar-border: #77b1c1;
+  --sidebar-ring: #85c7d6;
 }
 
 .dark {
@@ -120,6 +121,13 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: "Sora", ui-sans-serif, system-ui;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: "Playfair Display", Georgia, serif;
+    letter-spacing: -0.015em;
   }
 }
 
@@ -145,7 +153,7 @@
 
   .product-card {
     @apply rounded-3xl border border-border bg-card p-5 shadow-sm transition;
-    @apply hover:-translate-y-0.5 hover:shadow-md;
+    @apply hover:-translate-y-0.5 hover:shadow-md hover:border-primary/25;
   }
 
   .stock-badge {
@@ -153,15 +161,15 @@
   }
 
   .stock-badge-high {
-    @apply bg-emerald-100 text-emerald-700;
+    @apply bg-[#d7edf2] text-[#2f6b7b];
   }
 
   .stock-badge-low {
-    @apply bg-amber-100 text-amber-700;
+    @apply bg-[#ffe7be] text-[#8a6536];
   }
 
   .stock-badge-out {
-    @apply bg-rose-100 text-rose-700;
+    @apply bg-[#f9d4c8] text-[#99553e];
   }
 
   .action-btn {
@@ -169,23 +177,23 @@
   }
 
   .action-btn-restock {
-    @apply bg-emerald-50 text-emerald-700 hover:bg-emerald-100;
+    @apply bg-[#d8eef3] text-[#2f6b7b] hover:bg-[#c4e3eb];
   }
 
   .action-btn-sell {
-    @apply bg-slate-100 text-slate-700 hover:bg-slate-200;
+    @apply bg-[#f8d4c6] text-[#99553e] hover:bg-[#f2c2af];
   }
 
   .action-btn-adjust {
-    @apply bg-secondary text-secondary-foreground hover:bg-accent;
+    @apply bg-[#f7d9e1] text-[#7b4f5b] hover:bg-[#f2c5d3];
   }
 
   .summary-card {
-    @apply rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50 p-5 shadow-sm;
+    @apply rounded-3xl border border-primary/25 bg-gradient-to-br from-[#fff7ea] to-[#ffe4bc] p-5 shadow-sm;
   }
 
   .gradient-text {
-    @apply text-emerald-700;
+    @apply text-primary;
   }
 
   .sync-indicator {
@@ -194,19 +202,19 @@
   }
 
   .sync-offline {
-    @apply bg-slate-700/35 text-slate-200;
+    @apply bg-white/12 text-white/75;
   }
 
   .sync-syncing {
-    @apply bg-cyan-400/20 text-cyan-200;
+    @apply bg-[#85c7d6]/30 text-[#e9f7fb];
   }
 
   .sync-synced {
-    @apply bg-emerald-400/18 text-emerald-200;
+    @apply bg-[#ffdca6]/28 text-[#fff6dd];
   }
 
   .sync-conflict {
-    @apply bg-amber-300/20 text-amber-100;
+    @apply bg-[#e58b67]/30 text-[#fff0ea];
   }
 
   .bottom-nav {

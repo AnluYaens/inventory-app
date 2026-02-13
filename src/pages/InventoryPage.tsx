@@ -36,9 +36,9 @@ export default function InventoryPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold">Inventory</h1>
+            <h1 className="text-xl font-bold">Inventario</h1>
             <p className="text-sm text-muted-foreground">
-              {products.length} product{products.length !== 1 ? "s" : ""}
+              {products.length} producto{products.length !== 1 ? "s" : ""}
             </p>
           </div>
           <Button
@@ -50,7 +50,7 @@ export default function InventoryPage() {
             <RefreshCw
               className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
             />
-            Refresh
+            Actualizar
           </Button>
         </div>
 
@@ -66,7 +66,7 @@ export default function InventoryPage() {
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
             <p className="text-sm text-muted-foreground">
-              Loading inventory...
+              Cargando inventario...
             </p>
           </div>
         ) : products.length === 0 ? (
@@ -74,13 +74,13 @@ export default function InventoryPage() {
             <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mb-4">
               <Package className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="font-medium mb-1">No products found</h3>
+            <h3 className="font-medium mb-1">No se encontraron productos</h3>
             <p className="text-sm text-muted-foreground max-w-xs">
               {filters.search ||
               filters.category ||
               filters.stockStatus !== "all"
-                ? "Try adjusting your filters"
-                : "Add products to get started"}
+                ? "Prueba ajustando los filtros"
+                : "Agrega productos para comenzar"}
             </p>
           </div>
         ) : (

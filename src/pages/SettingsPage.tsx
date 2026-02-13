@@ -23,22 +23,22 @@ interface StoreSettings {
 }
 
 const currencies = [
-  { value: "USD", label: "US Dollar ($)" },
+  { value: "USD", label: "Dolar estadounidense ($)" },
   { value: "EUR", label: "Euro (€)" },
-  { value: "GBP", label: "British Pound (£)" },
-  { value: "JPY", label: "Japanese Yen (¥)" },
-  { value: "CAD", label: "Canadian Dollar (C$)" },
-  { value: "AUD", label: "Australian Dollar (A$)" },
+  { value: "GBP", label: "Libra esterlina (£)" },
+  { value: "JPY", label: "Yen japones (¥)" },
+  { value: "CAD", label: "Dolar canadiense (C$)" },
+  { value: "AUD", label: "Dolar australiano (A$)" },
 ];
 
 export default function SettingsPage() {
   const { user, role, signOut } = useAuth();
-  const { status, pendingCount, conflicts, isOnline } = useSync();
+  const { status, pendingCount, conflicts, isOnline, lastError } = useSync();
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [localStorageSize, setLocalStorageSize] =
-    useState<string>("Calculating...");
+    useState<string>("Calculando...");
 
   useEffect(() => {
     fetchSettings();
@@ -56,7 +56,7 @@ export default function SettingsPage() {
       if (error) throw error;
       setSettings(data);
     } catch (err) {
-      console.error("Failed to fetch settings:", err);
+      console.error("No se pudo obtener la configuracion:", err);
     } finally {
       setLoading(false);
     }
@@ -67,10 +67,10 @@ export default function SettingsPage() {
       const productCount = await db.products.count();
       const eventCount = await db.eventQueue.count();
       setLocalStorageSize(
-        `${productCount} products, ${eventCount} events cached`,
+        `${productCount} productos, ${eventCount} eventos en cache`,
       );
     } catch {
-      setLocalStorageSize("Unable to calculate");
+      setLocalStorageSize("No se pudo calcular");
     }
   }
 
@@ -88,9 +88,9 @@ export default function SettingsPage() {
         .eq("id", settings.id);
 
       if (error) throw error;
-      toast.success("Settings saved");
+      toast.success("Configuracion guardada");
     } catch {
-      toast.error("Failed to save settings");
+      toast.error("No se pudieron guardar los cambios");
     } finally {
       setSaving(false);
     }
@@ -101,20 +101,29 @@ export default function SettingsPage() {
       await db.products.clear();
       await db.eventQueue.clear();
       await db.syncState.clear();
-      toast.success("Local data cleared");
+      toast.success("Datos locales eliminados");
       calculateStorageSize();
     } catch {
-      toast.error("Failed to clear data");
+      toast.error("No se pudieron eliminar los datos locales");
     }
   }
+
+  const roleLabel =
+    role === "admin" ? "Administrador" : role === "staff" ? "Staff" : "Sin rol";
+  const statusLabel = {
+    offline: "Sin conexion",
+    syncing: "Sincronizando",
+    synced: "Sincronizado",
+    conflict: "En conflicto",
+  }[status];
 
   return (
     <AppLayout storeName={settings?.store_name}>
       <div className="p-4 space-y-6 max-w-xl mx-auto">
         <div>
-          <h1 className="text-xl font-bold">Settings</h1>
+          <h1 className="text-xl font-bold">Configuracion</h1>
           <p className="text-sm text-muted-foreground">
-            Manage your store settings
+            Gestiona la configuracion de tu tienda
           </p>
         </div>
 
@@ -128,12 +137,12 @@ export default function SettingsPage() {
             <div className="bg-card rounded-xl border border-border p-4 space-y-4">
               <div className="flex items-center gap-2 mb-2">
                 <Store className="h-5 w-5 text-primary" />
-                <h2 className="font-semibold">Store Settings</h2>
+                <h2 className="font-semibold">Ajustes de la tienda</h2>
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="storeName" className="text-sm font-medium">
-                  Store Name
+                  Nombre de la tienda
                 </label>
                 <Input
                   id="storeName"
@@ -149,7 +158,7 @@ export default function SettingsPage() {
 
               <div className="space-y-2">
                 <label htmlFor="currency" className="text-sm font-medium">
-                  Currency
+                  Moneda
                 </label>
                 <Select
                   value={settings?.currency || "USD"}
@@ -177,13 +186,13 @@ export default function SettingsPage() {
                   disabled={saving}
                   className="w-full"
                 >
-                  {saving ? "Saving..." : "Save Changes"}
+                  {saving ? "Guardando..." : "Guardar cambios"}
                 </Button>
               )}
 
               {role !== "admin" && (
                 <p className="text-xs text-muted-foreground">
-                  Only admins can modify store settings
+                  Solo administradores pueden modificar estos ajustes
                 </p>
               )}
             </div>
@@ -192,7 +201,7 @@ export default function SettingsPage() {
             <div className="bg-card rounded-xl border border-border p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Shield className="h-5 w-5 text-primary" />
-                <h2 className="font-semibold">Your Account</h2>
+                <h2 className="font-semibold">Tu cuenta</h2>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
@@ -200,8 +209,8 @@ export default function SettingsPage() {
                   <span>{user?.email}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Role</span>
-                  <span className="capitalize font-medium">{role}</span>
+                  <span className="text-muted-foreground">Rol</span>
+                  <span className="capitalize font-medium">{roleLabel}</span>
                 </div>
               </div>
               <Button
@@ -209,7 +218,7 @@ export default function SettingsPage() {
                 onClick={signOut}
                 className="w-full mt-4"
               >
-                Sign Out
+                Cerrar sesion
               </Button>
             </div>
 
@@ -217,31 +226,39 @@ export default function SettingsPage() {
             <div className="bg-card rounded-xl border border-border p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Wifi className="h-5 w-5 text-primary" />
-                <h2 className="font-semibold">Sync Status</h2>
+                <h2 className="font-semibold">Estado de sincronizacion</h2>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Connection</span>
+                  <span className="text-muted-foreground">Conexion</span>
                   <span
                     className={
                       isOnline ? "text-green-600" : "text-muted-foreground"
                     }
                   >
-                    {isOnline ? "Online" : "Offline"}
+                    {isOnline ? "En linea" : "Sin conexion"}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Status</span>
-                  <span className="capitalize">{status}</span>
+                  <span className="text-muted-foreground">Estado</span>
+                  <span className="capitalize">{statusLabel}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Pending Events</span>
+                  <span className="text-muted-foreground">Eventos pendientes</span>
                   <span>{pendingCount}</span>
                 </div>
                 {conflicts.length > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Conflicts</span>
+                    <span className="text-muted-foreground">Conflictos</span>
                     <span className="text-destructive">{conflicts.length}</span>
+                  </div>
+                )}
+                {lastError && (
+                  <div className="pt-2 border-t border-border/60">
+                    <p className="text-muted-foreground mb-1">Ultimo error</p>
+                    <p className="text-xs text-destructive break-words">
+                      {lastError}
+                    </p>
                   </div>
                 )}
               </div>
@@ -251,7 +268,7 @@ export default function SettingsPage() {
             <div className="bg-card rounded-xl border border-border p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Database className="h-5 w-5 text-primary" />
-                <h2 className="font-semibold">Local Data</h2>
+                <h2 className="font-semibold">Datos locales</h2>
               </div>
               <p className="text-sm text-muted-foreground mb-3">
                 {localStorageSize}
@@ -261,7 +278,7 @@ export default function SettingsPage() {
                 onClick={clearLocalData}
                 className="w-full"
               >
-                Clear Local Cache
+                Limpiar cache local
               </Button>
             </div>
           </>

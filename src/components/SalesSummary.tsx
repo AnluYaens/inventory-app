@@ -12,7 +12,7 @@ export function SalesSummary({
   currency = "USD",
 }: SalesSummaryProps) {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("es-US", {
       style: "currency",
       currency,
     }).format(amount);
@@ -26,7 +26,7 @@ export function SalesSummary({
             <DollarSign className="h-4 w-4 text-primary" />
           </div>
           <span className="text-xs text-muted-foreground font-medium">
-            Revenue
+            Ingresos
           </span>
         </div>
         <p className="text-2xl font-bold gradient-text">
@@ -40,7 +40,7 @@ export function SalesSummary({
             <Package className="h-4 w-4 text-primary" />
           </div>
           <span className="text-xs text-muted-foreground font-medium">
-            Items Sold
+            Unidades vendidas
           </span>
         </div>
         <p className="text-2xl font-bold">{totalItems}</p>

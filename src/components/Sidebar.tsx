@@ -14,16 +14,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { path: "/", label: "Inventory", icon: Package },
-  { path: "/sold", label: "Sold", icon: ShoppingBag },
-  { path: "/settings", label: "Settings", icon: Settings },
+  { path: "/", label: "Inventario", icon: Package },
+  { path: "/sold", label: "Ventas", icon: ShoppingBag },
+  { path: "/settings", label: "Configuracion", icon: Settings },
 ];
 
 interface SidebarProps {
   storeName?: string;
 }
 
-export function Sidebar({ storeName = "StockFlow" }: SidebarProps) {
+export function Sidebar({ storeName = "Mi Tienda" }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { user, role, signOut } = useAuth();
@@ -32,7 +32,7 @@ export function Sidebar({ storeName = "StockFlow" }: SidebarProps) {
     <aside
       className={cn(
         "hidden md:flex flex-col bg-sidebar text-sidebar-foreground h-screen sticky top-0 transition-all duration-300 border-r border-sidebar-border",
-        "bg-gradient-to-b from-sidebar to-[color:oklch(0.2_0.04_270)]",
+        "bg-gradient-to-b from-sidebar to-[color:oklch(0.18_0.03_40)]",
         collapsed ? "w-16" : "w-64",
       )}
     >
@@ -122,7 +122,7 @@ export function Sidebar({ storeName = "StockFlow" }: SidebarProps) {
                 onClick={signOut}
                 className="w-full text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-xl"
               >
-                Sign Out
+                Cerrar sesion
               </Button>
             </div>
           )

@@ -75,13 +75,13 @@ create table if not exists public.user_roles (
 
 create table if not exists public.store_settings (
   id uuid primary key default gen_random_uuid(),
-  store_name text not null default 'My Store',
+  store_name text not null default 'Mi Tienda',
   currency text not null default 'USD',
   updated_at timestamptz not null default now()
 );
 
 insert into public.store_settings (id, store_name, currency)
-select gen_random_uuid(), 'My Store', 'USD'
+select gen_random_uuid(), 'Mi Tienda', 'USD'
 where not exists (select 1 from public.store_settings);
 
 create index if not exists idx_inventory_events_product_created

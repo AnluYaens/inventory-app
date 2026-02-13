@@ -3,9 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { path: "/", label: "Inventory", icon: Package },
-  { path: "/sold", label: "Sold", icon: ShoppingBag },
-  { path: "/settings", label: "Settings", icon: Settings },
+  { path: "/", label: "Inventario", icon: Package },
+  { path: "/sold", label: "Ventas", icon: ShoppingBag },
+  { path: "/settings", label: "Ajustes", icon: Settings },
 ];
 
 export function BottomNav() {

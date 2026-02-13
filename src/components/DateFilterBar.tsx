@@ -7,9 +7,9 @@ interface DateFilterBarProps {
 }
 
 const filterOptions = [
-  { value: "today" as DateFilter, label: "Today" },
-  { value: "this-week" as DateFilter, label: "This Week" },
-  { value: "this-month" as DateFilter, label: "This Month" },
+  { value: "today" as DateFilter, label: "Hoy" },
+  { value: "this-week" as DateFilter, label: "Esta semana" },
+  { value: "this-month" as DateFilter, label: "Este mes" },
 ];
 
 export function DateFilterBar({

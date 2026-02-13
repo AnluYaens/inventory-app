@@ -12,7 +12,7 @@ interface AppLayoutProps {
 
 export function AppLayout({
   children,
-  storeName = "StockFlow",
+  storeName = "Mi Tienda",
 }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 

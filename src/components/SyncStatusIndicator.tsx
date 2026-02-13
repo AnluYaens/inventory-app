@@ -12,22 +12,22 @@ export function SyncStatusIndicator({ iconOnly = false }: SyncStatusIndicatorPro
   const statusConfig = {
     offline: {
       icon: WifiOff,
-      label: "Offline",
+      label: "Sin conexion",
       className: "sync-offline",
     },
     syncing: {
       icon: RefreshCw,
-      label: "Syncing...",
+      label: "Sincronizando...",
       className: "sync-syncing",
     },
     synced: {
       icon: CheckCircle,
-      label: "Synced",
+      label: "Sincronizado",
       className: "sync-synced",
     },
     conflict: {
       icon: AlertTriangle,
-      label: "Conflicts",
+      label: "Conflictos",
       className: "sync-conflict",
     },
   };
@@ -36,7 +36,7 @@ export function SyncStatusIndicator({ iconOnly = false }: SyncStatusIndicatorPro
   const Icon = config.icon;
   const ariaLabel =
     pendingCount > 0 && status !== "syncing"
-      ? `${config.label} (${pendingCount} pending)`
+      ? `${config.label} (${pendingCount} pendientes)`
       : config.label;
 
   return (

@@ -1,5 +1,6 @@
 import type { SaleEvent } from "@/hooks/useSalesHistory";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 interface SalesListProps {
   sales: SaleEvent[];
@@ -8,7 +9,7 @@ interface SalesListProps {
 
 export function SalesList({ sales, currency = "USD" }: SalesListProps) {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("es-US", {
       style: "currency",
       currency,
     }).format(amount);
@@ -17,7 +18,7 @@ export function SalesList({ sales, currency = "USD" }: SalesListProps) {
   if (sales.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">No sales in this period</p>
+        <p className="text-muted-foreground">No hay ventas en este periodo</p>
       </div>
     );
   }
@@ -38,7 +39,7 @@ export function SalesList({ sales, currency = "USD" }: SalesListProps) {
       {Object.entries(groupedSales).map(([date, daySales]) => (
         <div key={date}>
           <h3 className="text-sm font-medium text-muted-foreground mb-3">
-            {format(new Date(date), "EEEE, MMMM d")}
+            {format(new Date(date), "EEEE, d MMMM", { locale: es })}
           </h3>
           <div className="space-y-2">
             {daySales.map((sale) => (
@@ -53,7 +54,10 @@ export function SalesList({ sales, currency = "USD" }: SalesListProps) {
                   <div>
                     <p className="font-medium text-sm">{sale.productName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(sale.createdAt), "h:mm a")} ·{" "}
+                      {format(new Date(sale.createdAt), "h:mm a", {
+                        locale: es,
+                      })}{" "}
+                      ·{" "}
                       {sale.productSku}
                     </p>
                   </div>
@@ -65,7 +69,7 @@ export function SalesList({ sales, currency = "USD" }: SalesListProps) {
                     )}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Qty: {Math.abs(sale.qtyChange)}
+                    Cantidad: {Math.abs(sale.qtyChange)}
                   </p>
                 </div>
               </div>
