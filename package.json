@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "extract:catalog-pdf": "python scripts/extract-catalog-pdf.py",
+    "import:catalog": "node scripts/import-catalog.mjs",
+    "upload:images": "node scripts/upload-product-images.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

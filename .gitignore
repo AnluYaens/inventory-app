@@ -25,3 +25,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local handoff artifacts (generated)
+artifacts/
+client-assets/
+images-manifest.json
+import-report-*.json
