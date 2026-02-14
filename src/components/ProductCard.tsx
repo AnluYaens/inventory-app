@@ -120,7 +120,10 @@ export function ProductCard({
       <button
         onClick={handleRestock}
         disabled={loading === "restock"}
-        className="action-btn action-btn-restock"
+        className={cn(
+          "action-btn action-btn-restock",
+          direction === "row" && "h-9 w-9",
+        )}
         title="Reponer +1"
       >
         <Plus className="h-4 w-4" />
@@ -130,6 +133,7 @@ export function ProductCard({
         disabled={loading === "sell" || product.stock <= 0}
         className={cn(
           "action-btn action-btn-sell",
+          direction === "row" && "h-9 w-9",
           product.stock <= 0 && "opacity-50 cursor-not-allowed",
         )}
         title="Vender 1"
@@ -138,7 +142,10 @@ export function ProductCard({
       </button>
       <button
         onClick={() => setAdjustOpen(true)}
-        className="action-btn action-btn-adjust"
+        className={cn(
+          "action-btn action-btn-adjust",
+          direction === "row" && "h-9 w-9",
+        )}
         title="Ajustar"
       >
         <SlidersHorizontal className="h-4 w-4" />
@@ -164,17 +171,17 @@ export function ProductCard({
           </div>
 
           {/* Product Info */}
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 space-y-2.5">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="font-medium text-sm leading-snug truncate">
+                <h3 className="font-medium text-sm leading-snug break-words">
                   {product.name}
                 </h3>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground truncate max-w-full">
                   SKU: {product.sku}
                 </p>
               </div>
-              <span className="text-sm font-semibold text-primary shrink-0">
+              <span className="hidden sm:inline text-sm font-semibold text-primary shrink-0">
                 {formatPrice(product.price)}
               </span>
             </div>
@@ -198,8 +205,16 @@ export function ProductCard({
               )}
             </div>
 
+            {/* Mobile Price + Actions */}
+            <div className="sm:hidden flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-primary shrink-0">
+                {formatPrice(product.price)}
+              </span>
+              <div className="shrink-0">{renderActionButtons("row")}</div>
+            </div>
+
             {/* Stock */}
-            <div className="mt-3 flex items-center justify-between gap-2">
+            <div>
               <span
                 className={cn(
                   "stock-badge",
@@ -217,7 +232,6 @@ export function ProductCard({
                   <>{product.stock} en stock</>
                 )}
               </span>
-              <div className="sm:hidden">{renderActionButtons("row")}</div>
             </div>
           </div>
 

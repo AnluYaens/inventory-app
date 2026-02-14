@@ -5,7 +5,6 @@ import { SyncStatusIndicator } from "./SyncStatusIndicator";
 import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { MobileSidebar } from "@/components/MobileSidebar";
-import { BrandLogo } from "@/components/BrandLogo";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -19,7 +18,7 @@ export function AppLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="flex min-h-screen w-full overflow-x-hidden bg-background">
       {/* Desktop Sidebar */}
       <Sidebar storeName={storeName} />
 
@@ -44,16 +43,11 @@ export function AppLayout({
             </SheetContent>
           </Sheet>
 
-          <div className="flex items-center gap-2">
-            <BrandLogo containerClassName="h-7 w-7 rounded-md border-transparent bg-primary/15" />
-            <span className="font-semibold text-sm">{storeName}</span>
-          </div>
-
-          <SyncStatusIndicator />
+          <SyncStatusIndicator iconOnly />
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 pb-20 md:pb-0 overflow-y-auto md:h-screen">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto pb-20 md:h-screen md:pb-0">
           {children}
         </main>
 

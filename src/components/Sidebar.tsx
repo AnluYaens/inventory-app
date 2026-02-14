@@ -90,7 +90,7 @@ export function Sidebar({ storeName = "AMEN" }: SidebarProps) {
         <div
           className={cn("flex", collapsed ? "justify-center" : "justify-start")}
         >
-          <SyncStatusIndicator iconOnly={collapsed} />
+          <SyncStatusIndicator iconOnly />
         </div>
 
         {collapsed ? (

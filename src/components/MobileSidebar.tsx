@@ -56,7 +56,7 @@ export function MobileSidebar({
       </nav>
 
       <div className="space-y-3 border-t border-sidebar-border p-4">
-        <SyncStatusIndicator />
+        <SyncStatusIndicator iconOnly />
         {user && (
           <div className="space-y-2">
             <p className="truncate text-xs text-sidebar-foreground/85">
