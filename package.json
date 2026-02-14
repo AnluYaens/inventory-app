@@ -9,8 +9,11 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "extract:catalog-pdf": "python scripts/extract-catalog-pdf.py",
+    "catalog:build-review": "node scripts/build-catalog-review.mjs",
+    "catalog:validate": "node scripts/validate-catalog-final.mjs",
     "import:catalog": "node scripts/import-catalog.mjs",
-    "upload:images": "node scripts/upload-product-images.mjs"
+    "upload:images": "node scripts/upload-product-images.mjs",
+    "roles:check": "node scripts/check-access-roles.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

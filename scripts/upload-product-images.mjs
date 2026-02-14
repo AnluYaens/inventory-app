@@ -91,11 +91,11 @@ async function main() {
   const bucket = args.get("bucket") ?? "product-images";
   const prefix = args.get("prefix") ?? "";
   const output = args.get("output") ?? "images-manifest.json";
-  const upsert = args.get("upsert") === "true";
+  const upsert = args.get("upsert") !== "false";
 
   if (!dir) {
     throw new Error(
-      "Uso: npm run upload:images -- --dir <carpeta> [--bucket product-images] [--prefix temporada] [--output images-manifest.json] [--upsert true]"
+      "Uso: npm run upload:images -- --dir <carpeta> [--bucket product-images] [--prefix temporada] [--output images-manifest.json] [--upsert true|false (default true)]"
     );
   }
 
