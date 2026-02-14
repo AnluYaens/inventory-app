@@ -1,6 +1,6 @@
-# Stockflow
+# AMEN Inventory App
 
-Stockflow is a React + Vite + Supabase app with offline-first sync (Dexie) and PWA support.
+AMEN is a React + Vite + Supabase app with offline-first sync (Dexie) and PWA support.
 
 ## Local setup
 
@@ -60,7 +60,7 @@ Important:
 
 ## One-time catalog import (client handoff)
 
-This repo includes a strict fail-fast import pipeline for launch data.
+This repo includes a strict fail-fast import flow for launch/fix operations.
 
 Required env vars for scripts:
 
@@ -72,41 +72,35 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 Upload images to Supabase Storage and generate manifest:
 
 ```bash
-npm run upload:images -- --dir ./client-assets/photos --bucket product-images --output images-manifest.json
+npm run upload:images -- --dir ./client-assets/photos-final --bucket product-images --output images-manifest.json
 ```
 
 Dry-run catalog import:
 
 ```bash
-npm run import:catalog -- --file ./client-assets/catalog.csv --mode dry-run --images-manifest ./images-manifest.json
+npm run import:catalog -- --file ./client-assets/catalog-final.csv --mode dry-run --images-manifest ./images-manifest.json
 ```
 
 Apply catalog import:
 
 ```bash
-npm run import:catalog -- --file ./client-assets/catalog.csv --mode apply --images-manifest ./images-manifest.json
+npm run import:catalog -- --file ./client-assets/catalog-final.csv --mode apply --images-manifest ./images-manifest.json
 ```
 
 Detailed docs:
-- `docs/IMPORT_MAPPING_SPEC_ES.md`
 - `docs/CLIENT_HANDOFF_RUNBOOK_ES.md`
 - `docs/SUPPORT_WEEK1_CHECKLIST_ES.md`
+- `docs/HANDOFF_CLOSEOUT_CHECKLIST_ES.md`
 
-## PDF catalog extraction (staging)
-
-If the client provides a PDF catalog, generate staging artifacts first:
+Check roles for handoff (must have at least one admin):
 
 ```bash
-npm run extract:catalog-pdf -- --pdf "C:\\ruta\\CATALOGO.pdf"
+npm run roles:check
 ```
 
-This produces:
-- `artifacts/catalog_staging.csv`
-- `artifacts/image-map-review.csv`
-- `artifacts/extraction-report.json`
-- `artifacts/extracted-images/`
-
 ## PWA install
+
+Use static brand icons in `public/icons/` (`icon-192.png`, `icon-512.png`, `apple-touch-icon.png`).
 
 After deploy over HTTPS, users can install the app from browser prompt/menu:
 - Desktop: Install icon in URL bar.

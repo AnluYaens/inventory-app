@@ -19,6 +19,24 @@
 3. Si persiste: ir a `Configuracion > Estado de sincronizacion` y revisar `Ultimo error`.
 4. Reportar error al equipo tecnico con screenshot.
 
+## 3.1 Diagnostico rapido (1 minuto)
+1. Abrir `Configuracion > Estado de sincronizacion`.
+2. Revisar en este orden:
+- `Conexion`
+- `Estado`
+- `Eventos pendientes`
+- `Ultima sync exitosa`
+- `Ultimo intento`
+- `Reintentos`
+- `Ultimo error (usuario)`
+- `Detalle tecnico (soporte)`
+3. Si `Eventos pendientes > 0` por mas de 2 minutos con internet estable:
+- tomar screenshot completo,
+- reportar a soporte con hora exacta del incidente.
+4. Si `Estado = En conflicto`:
+- revisar inventario del SKU afectado,
+- aplicar ajuste manual con nota y volver a sincronizar.
+
 ## 4. Buenas practicas
 - No borrar cache local salvo instruccion tecnica.
 - Evitar usar la misma cuenta en demasiados dispositivos al mismo tiempo durante inventario critico.
