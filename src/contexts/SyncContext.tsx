@@ -9,7 +9,9 @@ import {
 import {
   getConflictEvents,
   getLastSyncError,
+  getLastSyncErrorDetails,
   getPendingEventsCount,
+  getSyncDiagnostics,
   getSyncStatus,
   isOnline,
   refreshProductCache,
@@ -23,6 +25,11 @@ interface SyncContextType {
   pendingCount: number;
   conflicts: QueuedEvent[];
   lastError: string | null;
+  lastErrorDetails: string | null;
+  lastSyncAt: string | null;
+  lastSyncAttemptAt: string | null;
+  retryCount: number;
+  lastRetryAt: string | null;
   isOnline: boolean;
   sync: () => Promise<void>;
   refreshCache: () => Promise<void>;
@@ -35,21 +42,40 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [pendingCount, setPendingCount] = useState(0);
   const [conflicts, setConflicts] = useState<QueuedEvent[]>([]);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [lastErrorDetails, setLastErrorDetails] = useState<string | null>(null);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [lastSyncAttemptAt, setLastSyncAttemptAt] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [lastRetryAt, setLastRetryAt] = useState<string | null>(null);
   const [online, setOnline] = useState(isOnline());
 
   const updateStatus = useCallback(async () => {
-    const [nextStatus, nextPendingCount, nextConflicts, nextLastError] =
+    const [
+      nextStatus,
+      nextPendingCount,
+      nextConflicts,
+      nextLastError,
+      nextLastErrorDetails,
+      diagnostics,
+    ] =
       await Promise.all([
         getSyncStatus(),
         getPendingEventsCount(),
         getConflictEvents(),
         getLastSyncError(),
+        getLastSyncErrorDetails(),
+        getSyncDiagnostics(),
       ]);
 
     setStatus(nextStatus);
     setPendingCount(nextPendingCount);
     setConflicts(nextConflicts);
     setLastError(nextLastError);
+    setLastErrorDetails(nextLastErrorDetails);
+    setLastSyncAt(diagnostics.lastSyncAt);
+    setLastSyncAttemptAt(diagnostics.lastSyncAttemptAt);
+    setRetryCount(diagnostics.retryCount);
+    setLastRetryAt(diagnostics.lastRetryAt);
   }, []);
 
   const sync = useCallback(async () => {
@@ -65,30 +91,20 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   }, [updateStatus]);
 
   useEffect(() => {
-    const runSyncCycle = () => {
+    const bootstrap = window.setTimeout(() => {
       void (async () => {
         try {
           setOnline(isOnline());
           await updateStatus();
-          if (!isOnline()) return;
-
-          const pending = await getPendingEventsCount();
-          if (pending > 0) {
-            await sync();
-          }
         } catch (err) {
-          console.error("Sync cycle failed:", err);
+          console.error("Failed to bootstrap sync status:", err);
         }
       })();
-    };
-
-    const bootstrap = window.setTimeout(() => {
-      runSyncCycle();
     }, 0);
 
     const handleOnline = () => {
       setOnline(true);
-      runSyncCycle();
+      void updateStatus();
     };
 
     const handleOffline = () => {
@@ -96,40 +112,15 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       setStatus("offline");
     };
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        runSyncCycle();
-      }
-    };
-
-    const handleFocus = () => {
-      runSyncCycle();
-    };
-
-    const handlePageShow = () => {
-      runSyncCycle();
-    };
-
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleFocus);
-    window.addEventListener("pageshow", handlePageShow);
-
-    const interval = window.setInterval(() => {
-      runSyncCycle();
-    }, 5000);
 
     return () => {
       window.clearTimeout(bootstrap);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("focus", handleFocus);
-      window.removeEventListener("pageshow", handlePageShow);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      window.clearInterval(interval);
     };
-  }, [sync, updateStatus]);
+  }, [updateStatus]);
 
   return (
     <SyncContext.Provider
@@ -138,6 +129,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         pendingCount,
         conflicts,
         lastError,
+        lastErrorDetails,
+        lastSyncAt,
+        lastSyncAttemptAt,
+        retryCount,
+        lastRetryAt,
         isOnline: online,
         sync,
         refreshCache,
