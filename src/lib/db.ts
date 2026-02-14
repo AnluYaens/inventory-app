@@ -32,8 +32,12 @@ export interface QueuedEvent {
 export interface SyncState {
   id: string;
   lastSyncAt: string | null;
+  lastSyncAttemptAt?: string | null;
   status: "offline" | "syncing" | "synced" | "conflict";
   lastError?: string | null;
+  lastErrorDetails?: string | null;
+  lastRetryAt?: string | null;
+  retryCount?: number;
 }
 
 export interface LocalSettings {

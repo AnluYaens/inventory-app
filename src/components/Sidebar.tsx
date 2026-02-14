@@ -1,8 +1,4 @@
 import {
-  Package,
-  ShoppingBag,
-  Settings,
-  Store,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -12,18 +8,14 @@ import { useState } from "react";
 import { SyncStatusIndicator } from "./SyncStatusIndicator";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-
-const navItems = [
-  { path: "/", label: "Inventario", icon: Package },
-  { path: "/sold", label: "Ventas", icon: ShoppingBag },
-  { path: "/settings", label: "Configuracion", icon: Settings },
-];
+import { appNavItems } from "@/components/navItems";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface SidebarProps {
   storeName?: string;
 }
 
-export function Sidebar({ storeName = "Mi Tienda" }: SidebarProps) {
+export function Sidebar({ storeName = "AMEN" }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { user, role, signOut } = useAuth();
@@ -32,7 +24,7 @@ export function Sidebar({ storeName = "Mi Tienda" }: SidebarProps) {
     <aside
       className={cn(
         "hidden md:flex flex-col bg-sidebar text-sidebar-foreground h-screen sticky top-0 transition-all duration-300 border-r border-sidebar-border",
-        "bg-gradient-to-b from-sidebar to-[color:oklch(0.18_0.03_40)]",
+        "bg-gradient-to-b from-sidebar to-[#3e7282]",
         collapsed ? "w-16" : "w-64",
       )}
     >
@@ -44,9 +36,7 @@ export function Sidebar({ storeName = "Mi Tienda" }: SidebarProps) {
             collapsed && "justify-center w-full",
           )}
         >
-          <div className="w-9 h-9 rounded-full bg-sidebar-primary/20 border border-sidebar-primary/30 flex items-center justify-center">
-            <Store className="h-4 w-4 text-sidebar-primary" />
-          </div>
+          <BrandLogo containerClassName="h-9 w-9 rounded-full" />
           {!collapsed && (
             <div className="flex flex-col">
               <span className="font-semibold text-sm truncate max-w-[140px]">
@@ -70,7 +60,7 @@ export function Sidebar({ storeName = "Mi Tienda" }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 py-4 px-2 space-y-1">
-        {navItems.map((item) => {
+        {appNavItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
 

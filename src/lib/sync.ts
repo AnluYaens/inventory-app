@@ -7,19 +7,60 @@ let inFlightSync: Promise<{ synced: number; conflicts: number }> | null = null;
 export type { QueuedEvent };
 export type SyncStatus = "offline" | "syncing" | "synced" | "conflict";
 
-function formatSyncError(err: unknown): string {
-  if (err instanceof Error) return err.message;
+export interface SyncDiagnostics {
+  lastSyncAt: string | null;
+  lastSyncAttemptAt: string | null;
+  retryCount: number;
+  lastRetryAt: string | null;
+  lastError: string | null;
+  lastErrorDetails: string | null;
+}
+
+interface NormalizedSyncError {
+  userMessage: string;
+  technicalDetails: string;
+}
+
+interface SyncStatePatch {
+  lastSyncAt?: string | null;
+  lastSyncAttemptAt?: string | null;
+  lastError?: string | null;
+  lastErrorDetails?: string | null;
+  lastRetryAt?: string | null;
+  retryCount?: number;
+}
+
+function normalizeSyncError(err: unknown): NormalizedSyncError {
+  const genericMessage =
+    "No se pudo sincronizar. Reintentando automaticamente.";
+  if (err instanceof Error) {
+    return {
+      userMessage: genericMessage,
+      technicalDetails: err.message,
+    };
+  }
   if (typeof err === "object" && err != null) {
     const e = err as Record<string, unknown>;
-    return JSON.stringify({
-      message: e.message,
-      code: e.code,
-      details: e.details,
-      hint: e.hint,
-      status: e.status,
-    });
+    const code = typeof e.code === "string" ? e.code : "";
+    const userMessage =
+      code === "PGRST203"
+        ? "Error de configuracion en sync (RPC). Contacta soporte."
+        : genericMessage;
+    return {
+      userMessage,
+      technicalDetails: JSON.stringify({
+        message: e.message,
+        code: e.code,
+        details: e.details,
+        hint: e.hint,
+        status: e.status,
+      }),
+    };
   }
-  return String(err);
+  return {
+    userMessage: genericMessage,
+    technicalDetails: String(err),
+  };
 }
 
 // Check online status
@@ -92,7 +133,9 @@ async function runSyncEvents(): Promise<{ synced: number; conflicts: number }> {
     return { synced: 0, conflicts: 0 };
   }
 
-  await updateSyncState("syncing", null);
+  await updateSyncState("syncing", {
+    lastSyncAttemptAt: new Date().toISOString(),
+  });
 
   const pendingEvents = await db.eventQueue
     .where("status")
@@ -138,19 +181,28 @@ async function runSyncEvents(): Promise<{ synced: number; conflicts: number }> {
         synced++;
       }
     } catch (err) {
-      const formatted = formatSyncError(err);
+      const normalized = normalizeSyncError(err);
+      const state = await db.syncState.get("main");
+      const nextRetryCount = (state?.retryCount ?? 0) + 1;
+      const retryAt = new Date().toISOString();
       console.error("Failed to sync event", {
         eventId: event.id,
         localId: event.localId,
         productId: event.productId,
-        formatted,
+        userMessage: normalized.userMessage,
+        technicalDetails: normalized.technicalDetails,
         raw: err,
       });
       await db.eventQueue.update(event.id!, {
         status: "pending",
-        errorMessage: formatted,
+        errorMessage: normalized.technicalDetails,
       });
-      await updateSyncState("syncing", formatted);
+      await updateSyncState("syncing", {
+        lastError: normalized.userMessage,
+        lastErrorDetails: normalized.technicalDetails,
+        retryCount: nextRetryCount,
+        lastRetryAt: retryAt,
+      });
     }
   }
 
@@ -165,10 +217,27 @@ async function runSyncEvents(): Promise<{ synced: number; conflicts: number }> {
     .where("status")
     .anyOf(["pending", "syncing"])
     .count();
-  await updateSyncState(
-    hasConflicts ? "conflict" : remainingPending > 0 ? "syncing" : "synced",
-    null,
-  );
+  const finalStatus: SyncStatus = hasConflicts
+    ? "conflict"
+    : remainingPending > 0
+      ? "syncing"
+      : "synced";
+
+  if (finalStatus === "synced") {
+    await updateSyncState("synced", {
+      lastSyncAt: new Date().toISOString(),
+      lastError: null,
+      lastErrorDetails: null,
+      retryCount: 0,
+      lastRetryAt: null,
+    });
+  } else if (finalStatus === "conflict") {
+    await updateSyncState("conflict", {
+      lastError: "Hay conflictos de inventario pendientes.",
+    });
+  } else {
+    await updateSyncState("syncing");
+  }
 
   return { synced, conflicts };
 }
@@ -231,11 +300,16 @@ export async function refreshProductCache(): Promise<void> {
     await db.products.bulkPut(cachedProducts);
 
     // Update sync timestamp
+    const previous = await db.syncState.get("main");
     await db.syncState.put({
       id: "main",
       lastSyncAt: new Date().toISOString(),
+      lastSyncAttemptAt: previous?.lastSyncAttemptAt ?? null,
       status: "synced",
       lastError: null,
+      lastErrorDetails: null,
+      retryCount: 0,
+      lastRetryAt: null,
     });
   } catch (err) {
     console.error("Failed to refresh cache:", err);
@@ -265,13 +339,36 @@ export async function getSyncStatus(): Promise<SyncStatus> {
 // Update sync state
 async function updateSyncState(
   status: SyncStatus,
-  lastError: string | null = null,
+  patch: SyncStatePatch = {},
 ): Promise<void> {
+  const previous = await db.syncState.get("main");
+  const nextLastSyncAt =
+    patch.lastSyncAt !== undefined
+      ? patch.lastSyncAt
+      : status === "synced"
+        ? new Date().toISOString()
+        : (previous?.lastSyncAt ?? null);
+
   await db.syncState.put({
     id: "main",
-    lastSyncAt: status === "synced" ? new Date().toISOString() : null,
+    lastSyncAt: nextLastSyncAt,
+    lastSyncAttemptAt:
+      patch.lastSyncAttemptAt !== undefined
+        ? patch.lastSyncAttemptAt
+        : (previous?.lastSyncAttemptAt ?? null),
     status,
-    lastError,
+    lastError:
+      patch.lastError !== undefined ? patch.lastError : (previous?.lastError ?? null),
+    lastErrorDetails:
+      patch.lastErrorDetails !== undefined
+        ? patch.lastErrorDetails
+        : (previous?.lastErrorDetails ?? null),
+    lastRetryAt:
+      patch.lastRetryAt !== undefined
+        ? patch.lastRetryAt
+        : (previous?.lastRetryAt ?? null),
+    retryCount:
+      patch.retryCount !== undefined ? patch.retryCount : (previous?.retryCount ?? 0),
   });
 }
 
@@ -302,7 +399,45 @@ export async function getLastSyncError(): Promise<string | null> {
   }
 
   withError.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return withError[0]
+    ? "No se pudo sincronizar. Reintentando automaticamente."
+    : null;
+}
+
+export async function getLastSyncErrorDetails(): Promise<string | null> {
+  const state = await db.syncState.get("main");
+  if (state?.lastErrorDetails) {
+    return state.lastErrorDetails;
+  }
+
+  const withError = await db.eventQueue
+    .filter(
+      (event) =>
+        Boolean(event.errorMessage) &&
+        (event.status === "pending" ||
+          event.status === "syncing" ||
+          event.status === "conflict"),
+    )
+    .toArray();
+
+  if (withError.length === 0) {
+    return null;
+  }
+
+  withError.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return withError[0]?.errorMessage ?? null;
+}
+
+export async function getSyncDiagnostics(): Promise<SyncDiagnostics> {
+  const state = await db.syncState.get("main");
+  return {
+    lastSyncAt: state?.lastSyncAt ?? null,
+    lastSyncAttemptAt: state?.lastSyncAttemptAt ?? null,
+    retryCount: state?.retryCount ?? 0,
+    lastRetryAt: state?.lastRetryAt ?? null,
+    lastError: state?.lastError ?? null,
+    lastErrorDetails: state?.lastErrorDetails ?? null,
+  };
 }
 
 // Get conflict events

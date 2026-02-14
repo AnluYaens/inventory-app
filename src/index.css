@@ -71,14 +71,14 @@
   --chart-3: #ffdca6;
   --chart-4: #fac6d3;
   --chart-5: #b99680;
-  --sidebar: #4e8fa4;
-  --sidebar-foreground: #eff9fc;
-  --sidebar-primary: #85c7d6;
-  --sidebar-primary-foreground: #163846;
-  --sidebar-accent: #6ca8ba;
-  --sidebar-accent-foreground: #f3fbfd;
-  --sidebar-border: #77b1c1;
-  --sidebar-ring: #85c7d6;
+  --sidebar: #2f6172;
+  --sidebar-foreground: #f3fbff;
+  --sidebar-primary: #b8e5ef;
+  --sidebar-primary-foreground: #123441;
+  --sidebar-accent: #3e7a8d;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #4f8da1;
+  --sidebar-ring: #b8e5ef;
 }
 
 .dark {
@@ -198,23 +198,23 @@
 
   .sync-indicator {
     @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold;
-    @apply border border-transparent;
+    @apply border transition-colors;
   }
 
   .sync-offline {
-    @apply bg-white/12 text-white/75;
+    @apply bg-slate-700 text-slate-100 border-slate-500;
   }
 
   .sync-syncing {
-    @apply bg-[#85c7d6]/30 text-[#e9f7fb];
+    @apply bg-cyan-900 text-cyan-50 border-cyan-700;
   }
 
   .sync-synced {
-    @apply bg-[#ffdca6]/28 text-[#fff6dd];
+    @apply bg-emerald-800 text-emerald-50 border-emerald-600;
   }
 
   .sync-conflict {
-    @apply bg-[#e58b67]/30 text-[#fff0ea];
+    @apply bg-red-800 text-red-50 border-red-600;
   }
 
   .bottom-nav {

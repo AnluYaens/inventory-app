@@ -2,8 +2,10 @@ import { useState, type ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
 import { SyncStatusIndicator } from "./SyncStatusIndicator";
-import { Menu, Store } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { MobileSidebar } from "@/components/MobileSidebar";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -12,7 +14,7 @@ interface AppLayoutProps {
 
 export function AppLayout({
   children,
-  storeName = "Mi Tienda",
+  storeName = "AMEN",
 }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -32,16 +34,18 @@ export function AppLayout({
             </SheetTrigger>
             <SheetContent
               side="left"
-              className="w-64 p-0 bg-sidebar text-sidebar-foreground border-sidebar-border"
+              showCloseButton={false}
+              className="w-72 p-0 bg-sidebar text-sidebar-foreground border-sidebar-border"
             >
-              <Sidebar storeName={storeName} />
+              <MobileSidebar
+                storeName={storeName}
+                onNavigate={() => setMobileMenuOpen(false)}
+              />
             </SheetContent>
           </Sheet>
 
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <Store className="h-3.5 w-3.5 text-primary-foreground" />
-            </div>
+            <BrandLogo containerClassName="h-7 w-7 rounded-md border-transparent bg-primary/15" />
             <span className="font-semibold text-sm">{storeName}</span>
           </div>
 

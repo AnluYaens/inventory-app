@@ -46,7 +46,7 @@ export function SyncStatusIndicator({ iconOnly = false }: SyncStatusIndicatorPro
       title={ariaLabel}
       aria-label={ariaLabel}
       className={cn(
-        "sync-indicator touch-target transition-transform active:scale-95",
+        "sync-indicator touch-target transition-transform active:scale-95 disabled:opacity-100",
         iconOnly && "px-2.5 py-2 min-w-0 justify-center",
         config.className,
         status === "syncing" && "pulse-sync",

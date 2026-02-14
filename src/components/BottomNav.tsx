@@ -1,19 +1,13 @@
-import { Package, ShoppingBag, Settings } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-
-const navItems = [
-  { path: "/", label: "Inventario", icon: Package },
-  { path: "/sold", label: "Ventas", icon: ShoppingBag },
-  { path: "/settings", label: "Ajustes", icon: Settings },
-];
+import { appNavItems } from "@/components/navItems";
 
 export function BottomNav() {
   const location = useLocation();
 
   return (
     <nav className="bottom-nav md:hidden">
-      {navItems.map((item) => {
+      {appNavItems.map((item) => {
         const isActive = location.pathname === item.path;
         const Icon = item.icon;
 

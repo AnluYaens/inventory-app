@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Store, Mail, Lock, User, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const emailSchema = z.string().email("Correo electronico invalido");
 const passwordSchema = z
@@ -82,10 +83,8 @@ export default function AuthPage() {
       <div className="w-full max-w-sm space-y-6">
         {/* Logo */}
         <div className="flex flex-col items-center text-center">
-          <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mb-4">
-            <Store className="h-7 w-7 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold">StockFlow</h1>
+          <BrandLogo containerClassName="mb-4 h-14 w-14 rounded-2xl bg-primary/10 border-primary/20" />
+          <h1 className="text-2xl font-bold">AMEN</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {isLogin ? "Inicia sesion en tu cuenta" : "Crea tu cuenta"}
           </p>

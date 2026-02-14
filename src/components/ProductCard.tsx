@@ -108,12 +108,50 @@ export function ProductCard({
     }).format(price);
   };
 
+  const renderActionButtons = (direction: "row" | "column") => (
+    <div
+      className={cn(
+        "flex gap-1.5",
+        direction === "column"
+          ? "flex-col items-center w-11 shrink-0"
+          : "items-center justify-end",
+      )}
+    >
+      <button
+        onClick={handleRestock}
+        disabled={loading === "restock"}
+        className="action-btn action-btn-restock"
+        title="Reponer +1"
+      >
+        <Plus className="h-4 w-4" />
+      </button>
+      <button
+        onClick={handleSell}
+        disabled={loading === "sell" || product.stock <= 0}
+        className={cn(
+          "action-btn action-btn-sell",
+          product.stock <= 0 && "opacity-50 cursor-not-allowed",
+        )}
+        title="Vender 1"
+      >
+        <Minus className="h-4 w-4" />
+      </button>
+      <button
+        onClick={() => setAdjustOpen(true)}
+        className="action-btn action-btn-adjust"
+        title="Ajustar"
+      >
+        <SlidersHorizontal className="h-4 w-4" />
+      </button>
+    </div>
+  );
+
   return (
     <>
-      <div className="product-card animate-fade-in">
-        <div className="flex gap-4">
+      <div className="product-card animate-fade-in h-full">
+        <div className="flex gap-3 items-start">
           {/* Product Image */}
-          <div className="w-16 h-16 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <div className="h-14 w-14 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
             {product.image_url ? (
               <img
                 src={product.image_url}
@@ -126,15 +164,17 @@ export function ProductCard({
           </div>
 
           {/* Product Info */}
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="font-medium text-sm truncate">{product.name}</h3>
+                <h3 className="font-medium text-sm leading-snug truncate">
+                  {product.name}
+                </h3>
                 <p className="text-xs text-muted-foreground">
                   SKU: {product.sku}
                 </p>
               </div>
-              <span className="text-sm font-semibold text-primary flex-shrink-0">
+              <span className="text-sm font-semibold text-primary shrink-0">
                 {formatPrice(product.price)}
               </span>
             </div>
@@ -158,58 +198,30 @@ export function ProductCard({
               )}
             </div>
 
-            {/* Stock & Actions */}
-            <div className="flex items-center justify-between mt-3">
-              <div className="flex items-center gap-2">
-                <span
-                  className={cn(
-                    "stock-badge",
-                    stockStatus === "high" && "stock-badge-high",
-                    stockStatus === "low" && "stock-badge-low",
-                    stockStatus === "out" && "stock-badge-out",
-                  )}
-                >
-                  {stockStatus === "out" ? (
-                    <>
-                      <AlertCircle className="h-3 w-3 mr-1" />
-                      {getStockLabel(stockStatus)}
-                    </>
-                  ) : (
-                    <>{product.stock} en stock</>
-                  )}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handleRestock}
-                  disabled={loading === "restock"}
-                  className="action-btn action-btn-restock"
-                  title="Reponer +1"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={handleSell}
-                  disabled={loading === "sell" || product.stock <= 0}
-                  className={cn(
-                    "action-btn action-btn-sell",
-                    product.stock <= 0 && "opacity-50 cursor-not-allowed",
-                  )}
-                  title="Vender 1"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setAdjustOpen(true)}
-                  className="action-btn action-btn-adjust"
-                  title="Ajustar"
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                </button>
-              </div>
+            {/* Stock */}
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <span
+                className={cn(
+                  "stock-badge",
+                  stockStatus === "high" && "stock-badge-high",
+                  stockStatus === "low" && "stock-badge-low",
+                  stockStatus === "out" && "stock-badge-out",
+                )}
+              >
+                {stockStatus === "out" ? (
+                  <>
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    {getStockLabel(stockStatus)}
+                  </>
+                ) : (
+                  <>{product.stock} en stock</>
+                )}
+              </span>
+              <div className="sm:hidden">{renderActionButtons("row")}</div>
             </div>
           </div>
+
+          <div className="hidden sm:flex">{renderActionButtons("column")}</div>
         </div>
       </div>
 

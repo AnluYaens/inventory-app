@@ -33,7 +33,18 @@ const currencies = [
 
 export default function SettingsPage() {
   const { user, role, signOut } = useAuth();
-  const { status, pendingCount, conflicts, isOnline, lastError } = useSync();
+  const {
+    status,
+    pendingCount,
+    conflicts,
+    isOnline,
+    lastError,
+    lastErrorDetails,
+    lastSyncAt,
+    lastSyncAttemptAt,
+    retryCount,
+    lastRetryAt,
+  } = useSync();
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -116,6 +127,17 @@ export default function SettingsPage() {
     synced: "Sincronizado",
     conflict: "En conflicto",
   }[status];
+
+  const formatDateTime = (value: string | null) =>
+    value
+      ? new Date(value).toLocaleString("es-US", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "Sin registro";
 
   return (
     <AppLayout storeName={settings?.store_name}>
@@ -247,6 +269,24 @@ export default function SettingsPage() {
                   <span className="text-muted-foreground">Eventos pendientes</span>
                   <span>{pendingCount}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Ultima sync exitosa
+                  </span>
+                  <span>{formatDateTime(lastSyncAt)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Ultimo intento</span>
+                  <span>{formatDateTime(lastSyncAttemptAt)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Reintentos</span>
+                  <span>{retryCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Ultimo reintento</span>
+                  <span>{formatDateTime(lastRetryAt)}</span>
+                </div>
                 {conflicts.length > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Conflictos</span>
@@ -255,9 +295,17 @@ export default function SettingsPage() {
                 )}
                 {lastError && (
                   <div className="pt-2 border-t border-border/60">
-                    <p className="text-muted-foreground mb-1">Ultimo error</p>
+                    <p className="text-muted-foreground mb-1">
+                      Ultimo error (usuario)
+                    </p>
                     <p className="text-xs text-destructive break-words">
                       {lastError}
+                    </p>
+                    <p className="text-muted-foreground my-1">
+                      Detalle tecnico (soporte)
+                    </p>
+                    <p className="text-xs text-destructive break-words">
+                      {lastErrorDetails ?? "Sin detalle tecnico"}
                     </p>
                   </div>
                 )}

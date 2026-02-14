@@ -19,11 +19,11 @@ export default defineConfig({
       },
       includeAssets: ['icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'],
       manifest: {
-        name: 'Stockflow',
-        short_name: 'Stockflow',
-        description: 'Inventory and sales tracking app',
-        theme_color: '#111827',
-        background_color: '#ffffff',
+        name: 'AMEN',
+        short_name: 'AMEN',
+        description: 'Inventario y ventas AMEN',
+        theme_color: '#2f6172',
+        background_color: '#faf5e0',
         display: 'standalone',
         start_url: '/',
         icons: [
