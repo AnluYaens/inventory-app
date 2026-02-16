@@ -8,9 +8,10 @@
 
 ## Dia 1 (Go-Live)
 1. Smoke test de login (admin + staff).
-2. Verificar catalogo completo (muestreo de SKUs y fotos).
+2. Verificar catalogo completo (muestreo de SKUs y fotos) con regla `image_filename -> SKU`.
 3. Probar venta, restock y ajuste.
 4. Probar modo offline y reconexion.
+5. Confirmar que `catalog-review-pending.csv` quedo en 0 al momento del cierre.
 
 ## Dia 3
 1. Revisar conflictos acumulados.
@@ -21,3 +22,4 @@
 1. Reconciliar muestra de inventario fisico vs app.
 2. Recolectar feedback de UX de la clienta.
 3. Priorizar mejoras post-lanzamiento.
+4. Repetir `npm run catalog:validate` antes de cualquier nuevo import de catalogo/fotos.

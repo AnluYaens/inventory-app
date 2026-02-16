@@ -47,3 +47,8 @@ Contactar soporte tecnico si:
 - Pending Events no baja durante varios minutos con internet estable.
 - Aparecen conflictos repetidos sin causa.
 - Falta data de productos o imagenes.
+
+## 6. Regla de fotos SKU (operacion interna)
+- Cada SKU debe tener una foto con nombre exacto SKU (ej: `PANT-1234-M.png`).
+- No se permite compartir un mismo archivo entre SKUs; si dos tallas usan la misma foto visual, duplicar archivo con ambos nombres SKU.
+- Si falta una foto SKU o hay multiples archivos para un SKU, se bloquea el handoff/import hasta corregirlo.

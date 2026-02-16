@@ -82,6 +82,14 @@ function writeCsv(filePath, headers, rows) {
   fs.writeFileSync(filePath, lines.join("\n"), "utf8");
 }
 
+function toBool(value, fallback = false) {
+  if (value == null) return fallback;
+  const normalized = String(value).trim().toLowerCase();
+  if (["1", "true", "yes", "y"].includes(normalized)) return true;
+  if (["0", "false", "no", "n"].includes(normalized)) return false;
+  return fallback;
+}
+
 function cleanToken(value) {
   return (value ?? "")
     .normalize("NFD")
@@ -280,11 +288,15 @@ function main() {
   const catalogPath = path.resolve(
     args.get("catalog") ?? "./client-assets/catalog-final.csv",
   );
-  const photosDir = path.resolve(args.get("photos") ?? "./client-assets/photos-final");
+  const photosDir = path.resolve(args.get("photos") ?? "./client-assets/photos-sku");
   const reviewPath = path.resolve(args.get("output") ?? "./client-assets/catalog-review.csv");
+  const pendingPath = path.resolve(
+    args.get("pending-output") ?? "./client-assets/catalog-review-pending.csv",
+  );
   const finalPath = path.resolve(
     args.get("final-output") ?? "./client-assets/catalog-final.csv",
   );
+  const failOnPending = toBool(args.get("fail-on-pending"), false);
 
   if (!fs.existsSync(stagingPath)) throw new Error(`No existe staging: ${stagingPath}`);
   if (!fs.existsSync(catalogPath)) throw new Error(`No existe catalogo: ${catalogPath}`);
@@ -430,6 +442,32 @@ function main() {
     reviewRows,
   );
 
+  const pendingRows = reviewRows.filter((row) => row.review_status !== "auto_ok");
+  writeCsv(
+    pendingPath,
+    [
+      "source_page",
+      "sku_current",
+      "sku_suggested",
+      "reference_number",
+      "reference_source",
+      "name_current",
+      "name_pdf",
+      "name_suggested",
+      "category_current",
+      "category_suggested",
+      "size_current",
+      "size_suggested",
+      "price_current",
+      "price_pdf",
+      "image_filename_current",
+      "image_filename_suggested",
+      "review_status",
+      "review_notes",
+    ],
+    pendingRows,
+  );
+
   writeCsv(
     finalPath,
     [
@@ -449,13 +487,21 @@ function main() {
     finalRows,
   );
 
-  const pending = reviewRows.filter((row) => row.review_status !== "auto_ok").length;
+  const pending = pendingRows.length;
   const fromPdf = reviewRows.filter((row) => row.reference_source === "pdf").length;
   console.log(`Review generado: ${reviewPath}`);
+  console.log(`Review pendientes: ${pendingPath}`);
   console.log(`Catalogo final sugerido: ${finalPath}`);
   console.log(`Rows review: ${reviewRows.length}`);
   console.log(`Referencias desde PDF: ${fromPdf}`);
   console.log(`Pendientes de revision: ${pending}`);
+
+  if (failOnPending && pending > 0) {
+    console.error(
+      `GATE FALLIDO: existen ${pending} filas pendientes. Resolver catalog-review-pending antes del handoff.`,
+    );
+    process.exit(1);
+  }
 }
 
 main();

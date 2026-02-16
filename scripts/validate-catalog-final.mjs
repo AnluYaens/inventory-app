@@ -2,6 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 
 const SKU_PATTERN = /^[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+$/;
+const SUPPORTED_IMAGE_EXTENSIONS = new Set([
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".avif",
+]);
 
 function isPlaceholderReference(value) {
   const normalized = normalizeToken(value);
@@ -84,10 +91,22 @@ function normalizeToken(value) {
     .toUpperCase();
 }
 
+function parseImageDescriptor(fileName) {
+  const extension = path.extname(fileName ?? "").toLowerCase();
+  if (!SUPPORTED_IMAGE_EXTENSIONS.has(extension)) return null;
+  const baseName = path.basename(fileName, extension);
+  if (!baseName) return null;
+  return {
+    extension,
+    baseName,
+    baseUpper: baseName.toUpperCase(),
+  };
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const filePath = path.resolve(args.get("file") ?? "./client-assets/catalog-final.csv");
-  const photosDir = path.resolve(args.get("photos") ?? "./client-assets/photos-final");
+  const photosDir = path.resolve(args.get("photos") ?? "./client-assets/photos-sku");
   const requirePdfReference = args.get("require-pdf-reference") === "true";
 
   if (!fs.existsSync(filePath)) throw new Error(`No existe archivo: ${filePath}`);
@@ -109,11 +128,20 @@ function main() {
     throw new Error(`Faltan columnas requeridas: ${missingHeaders.join(", ")}`);
   }
 
-  const photoFiles = new Set(
-    fs
-      .readdirSync(photosDir)
-      .filter((name) => /\.(jpg|jpeg|png|webp|avif)$/i.test(name)),
-  );
+  const photoFiles = fs
+    .readdirSync(photosDir)
+    .filter((name) => parseImageDescriptor(name) !== null);
+  const photosBySku = new Map();
+  for (const fileName of photoFiles) {
+    const descriptor = parseImageDescriptor(fileName);
+    if (!descriptor) continue;
+    const key = descriptor.baseUpper;
+    if (!photosBySku.has(key)) photosBySku.set(key, []);
+    photosBySku.get(key).push(fileName);
+  }
+  for (const fileList of photosBySku.values()) {
+    fileList.sort((a, b) => a.localeCompare(b));
+  }
 
   const seenSkus = new Set();
   const errors = [];
@@ -181,10 +209,37 @@ function main() {
 
     if (!imageFilename) {
       errors.push(`Linea ${line}: image_filename obligatorio.`);
-    } else if (!photoFiles.has(imageFilename)) {
-      errors.push(
-        `Linea ${line}: image_filename no existe en photos-final (${imageFilename}).`,
-      );
+    } else {
+      const descriptor = parseImageDescriptor(imageFilename);
+      if (!descriptor) {
+        errors.push(
+          `Linea ${line}: image_filename extension no soportada (${imageFilename}).`,
+        );
+      } else {
+        const skuKey = (sku ?? "").toUpperCase();
+        if (skuKey && descriptor.baseUpper !== skuKey) {
+          errors.push(
+            `Linea ${line}: image_filename debe tener basename exacto SKU (${sku}) y recibio (${descriptor.baseName}).`,
+          );
+        }
+
+        if (skuKey) {
+          const matches = photosBySku.get(skuKey) ?? [];
+          if (matches.length === 0) {
+            errors.push(
+              `Linea ${line}: no existe foto para SKU en carpeta (${sku}).`,
+            );
+          } else if (matches.length > 1) {
+            errors.push(
+              `Linea ${line}: multiples fotos para SKU (${sku}): ${matches.join(" | ")}.`,
+            );
+          } else if (matches[0] !== imageFilename) {
+            errors.push(
+              `Linea ${line}: image_filename debe coincidir exactamente con archivo detectado (${matches[0]}).`,
+            );
+          }
+        }
+      }
     }
   }
 
@@ -198,6 +253,7 @@ function main() {
   console.log(`Archivo: ${filePath}`);
   console.log(`Filas: ${rows.length}`);
   console.log("Formato SKU: CAT-REF-TALLA");
+  console.log("Regla imagen: basename(image_filename) == sku (case-insensitive) y 1 foto por SKU.");
   if (requirePdfReference) {
     console.log("Regla extra: reference_source obligatorio = pdf");
   }
