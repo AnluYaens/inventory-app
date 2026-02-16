@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -19,6 +20,7 @@ import {
   type QueuedEvent,
   type SyncStatus,
 } from "@/lib/sync";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SyncContextType {
   status: SyncStatus;
@@ -48,6 +50,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [retryCount, setRetryCount] = useState(0);
   const [lastRetryAt, setLastRetryAt] = useState<string | null>(null);
   const [online, setOnline] = useState(isOnline());
+  const remoteRefreshTimerRef = useRef<number | null>(null);
+  const remoteRefreshInFlightRef = useRef(false);
 
   const updateStatus = useCallback(async () => {
     const [
@@ -90,6 +94,29 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     await updateStatus();
   }, [updateStatus]);
 
+  const scheduleRemoteRefresh = useCallback(() => {
+    if (!isOnline()) return;
+
+    if (remoteRefreshTimerRef.current != null) {
+      window.clearTimeout(remoteRefreshTimerRef.current);
+    }
+
+    remoteRefreshTimerRef.current = window.setTimeout(() => {
+      void (async () => {
+        if (remoteRefreshInFlightRef.current) return;
+        remoteRefreshInFlightRef.current = true;
+        try {
+          await refreshProductCache();
+          await updateStatus();
+        } catch (err) {
+          console.error("Failed to refresh from remote event:", err);
+        } finally {
+          remoteRefreshInFlightRef.current = false;
+        }
+      })();
+    }, 600);
+  }, [updateStatus]);
+
   useEffect(() => {
     const bootstrap = window.setTimeout(() => {
       void (async () => {
@@ -104,7 +131,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
     const handleOnline = () => {
       setOnline(true);
-      void updateStatus();
+      scheduleRemoteRefresh();
     };
 
     const handleOffline = () => {
@@ -117,10 +144,37 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
     return () => {
       window.clearTimeout(bootstrap);
+      if (remoteRefreshTimerRef.current != null) {
+        window.clearTimeout(remoteRefreshTimerRef.current);
+      }
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [updateStatus]);
+  }, [scheduleRemoteRefresh, updateStatus]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`inventory-sync-${crypto.randomUUID()}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "stock_snapshots" },
+        () => {
+          scheduleRemoteRefresh();
+        },
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => {
+        scheduleRemoteRefresh();
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          scheduleRemoteRefresh();
+        }
+      });
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [scheduleRemoteRefresh]);
 
   return (
     <SyncContext.Provider
