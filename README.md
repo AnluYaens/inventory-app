@@ -109,6 +109,52 @@ Check roles for handoff (must have at least one admin):
 npm run roles:check
 ```
 
+## Live catalog reset (remove legacy and keep only new CSV)
+
+Use this when production still has old SKUs (for example `AMN-*`) mixed with the new catalog.
+
+Dry-run (safe preview, no mutation):
+
+```bash
+npm run live:reset-catalog -- --mode dry-run --file ./client-assets/catalog-final.csv --photos ./client-assets/photos-sku --images-manifest ./images-manifest.json --backup-dir ./artifacts/backups --bucket product-images
+```
+
+Apply (destructive reset, requires explicit confirmation):
+
+```bash
+npm run live:reset-catalog -- --mode apply --confirm-reset true --file ./client-assets/catalog-final.csv --photos ./client-assets/photos-sku --images-manifest ./images-manifest.json --backup-dir ./artifacts/backups --bucket product-images
+```
+
+What it does:
+- Preflight reconcile + validate + import dry-run.
+- Exports backup (`products`, `stock_snapshots`, `inventory_events`).
+- Clears `product-images` bucket.
+- Deletes all current `inventory_events` and `products` (with `stock_snapshots` cascaded).
+- Uploads only current photos and imports only current CSV.
+- Runs strict post-reset verification (`live:verify-alignment`).
+
+Standalone alignment check:
+
+```bash
+npm run live:verify-alignment -- --file ./client-assets/catalog-final.csv --photos ./client-assets/photos-sku --images-manifest ./images-manifest.json --expect-events 0
+```
+
+## Deterministic Generated-File Cleanup
+
+Prune old generated artifacts while keeping latest evidence:
+
+```bash
+npm run ops:prune-artifacts -- --mode dry-run --keep-latest-backups 1 --keep-latest-live-reset 1 --keep-latest-import-reports 1
+npm run ops:prune-artifacts -- --mode apply --keep-latest-backups 1 --keep-latest-live-reset 1 --keep-latest-import-reports 1
+```
+
+This keeps only the newest:
+- `artifacts/backups/<timestamp>/`
+- `artifacts/live-reset/<timestamp>/`
+- root `import-report-*.json`
+
+And removes stale standalone files under `artifacts/`.
+
 ## PWA install
 
 Use static brand icons in `public/icons/` (`icon-192.png`, `icon-512.png`, `apple-touch-icon.png`).
