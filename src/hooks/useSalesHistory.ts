@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   endOfDay,
   startOfDay,
@@ -57,66 +57,87 @@ export function useSalesHistory(
     }
   }, [dateFilter, customRange]);
 
-  useEffect(() => {
-    async function fetchSales() {
-      if (!isOnline()) {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-
-      try {
-        const { data, error } = await supabase
-          .from("inventory_events")
-          .select(
-            `
-            id,
-            product_id,
-            qty_change,
-            created_at,
-            products (
-              name,
-              sku,
-              price
-            )
-          `
-          )
-          .eq("type", "sale")
-          .eq("status", "applied")
-          .gte("created_at", dateRange.start.toISOString())
-          .lte("created_at", dateRange.end.toISOString())
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-
-        const rows = (data ?? []) as SalesQueryRow[];
-        const formattedSales: SaleEvent[] = rows.map((row) => {
-          const product = Array.isArray(row.products)
-            ? row.products[0]
-            : row.products;
-
-          return {
-            id: row.id,
-            productId: row.product_id,
-            productName: product?.name ?? "Desconocido",
-            productSku: product?.sku ?? "",
-            productPrice: Number(product?.price ?? 0),
-            qtyChange: row.qty_change,
-            createdAt: row.created_at,
-          };
-        });
-
-        setSales(formattedSales);
-      } catch (err) {
-        console.error("No se pudo cargar el historial de ventas:", err);
-      } finally {
-        setLoading(false);
-      }
+  const fetchSales = useCallback(async () => {
+    if (!isOnline()) {
+      setLoading(false);
+      return;
     }
 
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("inventory_events")
+        .select(
+          `
+          id,
+          product_id,
+          qty_change,
+          created_at,
+          products (
+            name,
+            sku,
+            price
+          )
+        `
+        )
+        .eq("type", "sale")
+        .eq("status", "applied")
+        .gte("created_at", dateRange.start.toISOString())
+        .lte("created_at", dateRange.end.toISOString())
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const rows = (data ?? []) as SalesQueryRow[];
+      const formattedSales: SaleEvent[] = rows.map((row) => {
+        const product = Array.isArray(row.products)
+          ? row.products[0]
+          : row.products;
+
+        return {
+          id: row.id,
+          productId: row.product_id,
+          productName: product?.name ?? "Desconocido",
+          productSku: product?.sku ?? "",
+          productPrice: Number(product?.price ?? 0),
+          qtyChange: row.qty_change,
+          createdAt: row.created_at,
+        };
+      });
+
+      setSales(formattedSales);
+    } catch (err) {
+      console.error("No se pudo cargar el historial de ventas:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [dateRange.end, dateRange.start]);
+
+  useEffect(() => {
     void fetchSales();
-  }, [dateRange]);
+  }, [fetchSales]);
+
+  const voidSale = useCallback(
+    async (saleEventId: string, reason?: string) => {
+      if (!isOnline()) {
+        return { success: false, error: "Sin conexion. Intenta de nuevo en linea." };
+      }
+
+      const { error } = await supabase.rpc("admin_void_sale_event", {
+        p_event_id: saleEventId,
+        p_reason: reason?.trim() ? reason.trim() : undefined,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      await fetchSales();
+      return { success: true };
+    },
+    [fetchSales],
+  );
 
   const summary = useMemo(() => {
     const totalItems = sales.reduce((sum, sale) => sum + Math.abs(sale.qtyChange), 0);
@@ -128,5 +149,5 @@ export function useSalesHistory(
     return { totalItems, totalRevenue };
   }, [sales]);
 
-  return { sales, summary, loading, dateRange };
+  return { sales, summary, loading, dateRange, refetch: fetchSales, voidSale };
 }

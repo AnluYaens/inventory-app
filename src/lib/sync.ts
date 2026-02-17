@@ -30,6 +30,22 @@ interface SyncStatePatch {
   retryCount?: number;
 }
 
+function isPermissionDeniedError(err: unknown): boolean {
+  if (err instanceof Error) {
+    const msg = err.message.toLowerCase();
+    return msg.includes("permission") || msg.includes("only admins");
+  }
+
+  if (typeof err === "object" && err !== null) {
+    const e = err as Record<string, unknown>;
+    const code = typeof e.code === "string" ? e.code : "";
+    const msg = typeof e.message === "string" ? e.message.toLowerCase() : "";
+    return code === "42501" || msg.includes("permission") || msg.includes("only admins");
+  }
+
+  return false;
+}
+
 function normalizeSyncError(err: unknown): NormalizedSyncError {
   const genericMessage =
     "No se pudo sincronizar. Reintentando automaticamente.";
@@ -219,9 +235,12 @@ async function runSyncEvents(): Promise<{ synced: number; conflicts: number }> {
       }
     } catch (err) {
       const normalized = normalizeSyncError(err);
+      const isPermissionError = isPermissionDeniedError(err);
+
       const state = await db.syncState.get("main");
       const nextRetryCount = (state?.retryCount ?? 0) + 1;
       const retryAt = new Date().toISOString();
+
       console.error("Failed to sync event", {
         eventId: event.id,
         localId: event.localId,
@@ -230,6 +249,20 @@ async function runSyncEvents(): Promise<{ synced: number; conflicts: number }> {
         technicalDetails: normalized.technicalDetails,
         raw: err,
       });
+
+      if (isPermissionError) {
+        await db.eventQueue.update(event.id!, {
+          status: "conflict",
+          errorMessage: normalized.technicalDetails,
+        });
+        await updateSyncState("conflict", {
+          lastError: "Sin permisos para modificar inventario.",
+          lastErrorDetails: normalized.technicalDetails,
+        });
+        conflicts++;
+        continue;
+      }
+
       await db.eventQueue.update(event.id!, {
         status: "pending",
         errorMessage: normalized.technicalDetails,

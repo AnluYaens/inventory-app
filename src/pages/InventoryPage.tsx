@@ -6,9 +6,11 @@ import { useProducts, type ProductFilters } from "@/hooks/useProducts";
 import { Loader2, Package, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSync } from "@/contexts/SyncContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function InventoryPage() {
   const { refreshCache, isOnline } = useSync();
+  const { role } = useAuth();
   const PAGE_SIZE = 50;
   const [filters, setFilters] = useState<ProductFilters>({
     search: "",
@@ -43,6 +45,7 @@ export default function InventoryPage() {
 
   const rangeStart = totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const rangeEnd = Math.min(currentPage * PAGE_SIZE, totalItems);
+  const canManageInventory = role === "admin";
 
   return (
     <AppLayout>
@@ -104,6 +107,7 @@ export default function InventoryPage() {
                 <ProductCard
                   key={product.id}
                   product={product}
+                  canManage={canManageInventory}
                   onSell={() => sellProduct(product.id)}
                   onRestock={(qty) => restockProduct(product.id, qty)}
                   onUpdatePrice={(price) => setProductPrice(product.id, price)}

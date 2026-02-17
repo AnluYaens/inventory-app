@@ -8,11 +8,28 @@ import { Loader2, ShoppingBag } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useSync } from "@/contexts/SyncContext";
+import { useAuth } from "@/contexts/AuthContext";
+import type { SaleEvent } from "@/hooks/useSalesHistory";
+import { toast } from "sonner";
 
 export default function SoldPage() {
   const [dateFilter, setDateFilter] = useState<DateFilter>("today");
-  const { sales, summary, loading, dateRange } = useSalesHistory(dateFilter);
+  const { sales, summary, loading, dateRange, voidSale } =
+    useSalesHistory(dateFilter);
   const { isOnline } = useSync();
+  const { role } = useAuth();
+  const canVoidSales = role === "admin";
+
+  const handleVoidSale = async (sale: SaleEvent, reason?: string) => {
+    const result = await voidSale(sale.id, reason);
+    if (!result.success) {
+      toast.error(result.error || "No se pudo anular la venta");
+      return result;
+    }
+
+    toast.success("Venta anulada y stock restaurado");
+    return result;
+  };
 
   return (
     <AppLayout>
@@ -58,7 +75,16 @@ export default function SoldPage() {
             {/* Sales List */}
             <div className="mt-6">
               <h2 className="font-semibold mb-3">Transacciones</h2>
-              <SalesList sales={sales} />
+              {!canVoidSales && (
+                <p className="text-xs text-muted-foreground mb-3">
+                  Solo administradores pueden anular ventas.
+                </p>
+              )}
+              <SalesList
+                sales={sales}
+                canVoid={canVoidSales}
+                onVoidSale={handleVoidSale}
+              />
             </div>
           </>
         )}

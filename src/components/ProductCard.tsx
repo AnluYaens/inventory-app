@@ -22,6 +22,7 @@ import { toast } from "sonner";
 
 interface ProductCardProps {
   product: CachedProduct;
+  canManage: boolean;
   onSell: () => Promise<{ success: boolean; error?: string }>;
   onRestock: (qty: number) => Promise<{ success: boolean; error?: string }>;
   onUpdatePrice: (price: number) => Promise<{ success: boolean; error?: string }>;
@@ -46,6 +47,7 @@ function getStockLabel(status: "high" | "low" | "out"): string {
 
 export function ProductCard({
   product,
+  canManage,
   onSell,
   onRestock,
   onUpdatePrice,
@@ -57,6 +59,10 @@ export function ProductCard({
   const stockStatus = getStockStatus(product.stock);
 
   const handleSell = async () => {
+    if (!canManage) {
+      toast.error("Solo admin puede modificar inventario");
+      return;
+    }
     if (product.stock <= 0) {
       toast.error("No se puede vender: sin stock");
       return;
@@ -72,6 +78,10 @@ export function ProductCard({
   };
 
   const handleRestock = async () => {
+    if (!canManage) {
+      toast.error("Solo admin puede modificar inventario");
+      return;
+    }
     setLoading("restock");
     const result = await onRestock(1);
     setLoading(null);
@@ -83,11 +93,20 @@ export function ProductCard({
   };
 
   const handleOpenPrice = () => {
+    if (!canManage) {
+      toast.error("Solo admin puede cambiar precios");
+      return;
+    }
     setPriceValue(String(product.price));
     setPriceOpen(true);
   };
 
   const handleUpdatePrice = async () => {
+    if (!canManage) {
+      toast.error("Solo admin puede cambiar precios");
+      return;
+    }
+
     const parsedPrice = Number(priceValue);
     if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
       toast.error("Ingresa un precio valido");
@@ -216,7 +235,9 @@ export function ProductCard({
               <span className="text-sm font-semibold text-primary shrink-0">
                 {formatPrice(product.price)}
               </span>
-              <div className="shrink-0">{renderActionButtons("row")}</div>
+              {canManage && (
+                <div className="shrink-0">{renderActionButtons("row")}</div>
+              )}
             </div>
 
             {/* Stock */}
@@ -239,9 +260,16 @@ export function ProductCard({
                 )}
               </span>
             </div>
+            {!canManage && (
+              <p className="text-xs text-muted-foreground">
+                Solo lectura. Admin puede editar stock y precio.
+              </p>
+            )}
           </div>
 
-          <div className="hidden sm:flex">{renderActionButtons("column")}</div>
+          {canManage && (
+            <div className="hidden sm:flex">{renderActionButtons("column")}</div>
+          )}
         </div>
       </div>
 

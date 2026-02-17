@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, Lock, User, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -14,16 +14,14 @@ const passwordSchema = z
   .min(6, "La clave debe tener al menos 6 caracteres");
 
 export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {},
   );
 
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
 
   const validateForm = () => {
@@ -49,29 +47,16 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) {
-          if (error.message.includes("Invalid login credentials")) {
-            toast.error("Correo o clave incorrectos");
-          } else {
-            toast.error(error.message);
-          }
+      const { error } = await signIn(email, password);
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          toast.error("Correo o clave incorrectos");
         } else {
-          toast.success("Bienvenida de nuevo");
-          navigate("/");
+          toast.error(error.message);
         }
       } else {
-        const { error } = await signUp(email, password, fullName);
-        if (error) {
-          if (error.message.includes("already registered")) {
-            toast.error("Este correo ya esta registrado");
-          } else {
-            toast.error(error.message);
-          }
-        } else {
-          toast.success("Revisa tu correo para confirmar tu cuenta");
-        }
+        toast.success("Bienvenida de nuevo");
+        navigate("/");
       }
     } finally {
       setLoading(false);
@@ -85,32 +70,14 @@ export default function AuthPage() {
         <div className="flex flex-col items-center text-center">
           <BrandLogo containerClassName="mb-4 h-14 w-14 rounded-2xl bg-primary/10 border-primary/20" />
           <h1 className="text-2xl font-bold">AMEN</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isLogin ? "Inicia sesion en tu cuenta" : "Crea tu cuenta"}
+          <p className="text-sm text-muted-foreground mt-1">Inicia sesion en tu cuenta</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            Las cuentas se crean unicamente desde el panel de Supabase.
           </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <div className="space-y-2">
-              <label htmlFor="fullName" className="text-sm font-medium">
-                Nombre completo
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Nombre Apellido"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          )}
-
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
               Correo
@@ -161,31 +128,13 @@ export default function AuthPage() {
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {isLogin ? "Iniciando sesion..." : "Creando cuenta..."}
+                Iniciando sesion...
               </>
-            ) : isLogin ? (
-              "Iniciar sesion"
             ) : (
-              "Crear cuenta"
+              "Iniciar sesion"
             )}
           </Button>
         </form>
-
-        {/* Toggle */}
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => {
-              setIsLogin(!isLogin);
-              setErrors({});
-            }}
-            className="text-sm text-primary hover:underline"
-          >
-            {isLogin
-              ? "No tienes cuenta? Registrate"
-              : "Ya tienes cuenta? Inicia sesion"}
-          </button>
-        </div>
       </div>
     </div>
   );

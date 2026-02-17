@@ -213,6 +213,19 @@ export type Database = {
           new_stock: number;
         }[];
       };
+      admin_void_sale_event: {
+        Args: {
+          p_event_id: string;
+          p_reason?: string;
+        };
+        Returns: {
+          adjustment_event_id: string;
+          new_stock: number;
+          product_id: string;
+          restored_qty: number;
+          voided_event_id: string;
+        }[];
+      };
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"];

@@ -1,18 +1,50 @@
 import type { SaleEvent } from "@/hooks/useSalesHistory";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 interface SalesListProps {
   sales: SaleEvent[];
   currency?: string;
+  canVoid?: boolean;
+  onVoidSale?: (
+    sale: SaleEvent,
+    reason?: string,
+  ) => Promise<{ success: boolean; error?: string }>;
 }
 
-export function SalesList({ sales, currency = "USD" }: SalesListProps) {
+export function SalesList({
+  sales,
+  currency = "USD",
+  canVoid = false,
+  onVoidSale,
+}: SalesListProps) {
+  const [voidingSaleId, setVoidingSaleId] = useState<string | null>(null);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("es-US", {
       style: "currency",
       currency,
     }).format(amount);
+  };
+
+  const handleVoidSale = async (sale: SaleEvent) => {
+    if (!canVoid || !onVoidSale) return;
+
+    const confirmed = window.confirm(
+      "Esta accion anulara la venta y restaurara el stock. Deseas continuar?",
+    );
+    if (!confirmed) return;
+
+    const reasonInput = window.prompt("Motivo (opcional):", "") ?? "";
+
+    setVoidingSaleId(sale.id);
+    try {
+      await onVoidSale(sale, reasonInput);
+    } finally {
+      setVoidingSaleId(null);
+    }
   };
 
   if (sales.length === 0) {
@@ -71,6 +103,17 @@ export function SalesList({ sales, currency = "USD" }: SalesListProps) {
                   <p className="text-xs text-muted-foreground">
                     Cantidad: {Math.abs(sale.qtyChange)}
                   </p>
+                  {canVoid && onVoidSale && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => void handleVoidSale(sale)}
+                      disabled={voidingSaleId === sale.id}
+                    >
+                      {voidingSaleId === sale.id ? "Anulando..." : "Anular venta"}
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
