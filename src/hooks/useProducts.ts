@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { db } from "@/lib/db";
-import { refreshProductCache, queueInventoryEvent, isOnline } from "@/lib/sync";
+import {
+  refreshProductCache,
+  queueInventoryEvent,
+  isOnline,
+  updateProductPrice,
+} from "@/lib/sync";
 import { useLiveQuery } from "dexie-react-hooks";
 
 export interface ProductFilters {
@@ -93,6 +98,10 @@ export function useProducts(filters: ProductFilters) {
     [],
   );
 
+  const setProductPrice = useCallback(async (productId: string, price: number) => {
+    return updateProductPrice(productId, price);
+  }, []);
+
   return {
     products: products || [],
     categories: categories || [],
@@ -100,6 +109,7 @@ export function useProducts(filters: ProductFilters) {
     sellProduct,
     restockProduct,
     adjustProduct,
+    setProductPrice,
     refresh: refreshProductCache,
   };
 }

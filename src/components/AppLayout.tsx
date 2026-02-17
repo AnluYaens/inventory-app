@@ -18,7 +18,7 @@ export function AppLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen w-full overflow-x-hidden bg-background">
+    <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Desktop Sidebar */}
       <Sidebar storeName={storeName} />
 
@@ -47,7 +47,7 @@ export function AppLayout({
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto pb-20 md:h-screen md:pb-0">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto pb-20 md:pb-0">
           {children}
         </main>
 

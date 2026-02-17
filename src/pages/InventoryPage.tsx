@@ -23,7 +23,7 @@ export default function InventoryPage() {
     loading,
     sellProduct,
     restockProduct,
-    adjustProduct,
+    setProductPrice,
   } = useProducts(filters);
 
   const handleRefresh = async () => {
@@ -106,9 +106,7 @@ export default function InventoryPage() {
                   product={product}
                   onSell={() => sellProduct(product.id)}
                   onRestock={(qty) => restockProduct(product.id, qty)}
-                  onAdjust={(qtyChange, note) =>
-                    adjustProduct(product.id, qtyChange, note)
-                  }
+                  onUpdatePrice={(price) => setProductPrice(product.id, price)}
                 />
               ))}
             </div>

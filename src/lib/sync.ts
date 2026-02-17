@@ -114,6 +114,43 @@ export async function queueInventoryEvent(
   return { success: true };
 }
 
+// Update product price in remote DB and local cache.
+export async function updateProductPrice(
+  productId: string,
+  nextPrice: number,
+): Promise<{ success: boolean; error?: string }> {
+  if (!Number.isFinite(nextPrice) || nextPrice < 0) {
+    return { success: false, error: "Precio invalido" };
+  }
+
+  if (!isOnline()) {
+    return {
+      success: false,
+      error: "Sin conexion. Conectate para actualizar precios.",
+    };
+  }
+
+  const normalizedPrice = Number(nextPrice.toFixed(2));
+  const { error } = await supabase
+    .from("products")
+    .update({ price: normalizedPrice })
+    .eq("id", productId);
+
+  if (error) {
+    return {
+      success: false,
+      error: "No se pudo guardar el precio en servidor.",
+    };
+  }
+
+  // Update local row for immediate UI response.
+  await db.products.update(productId, { price: normalizedPrice });
+
+  // Refresh full cache so every screen uses the same persisted value.
+  await refreshProductCache();
+  return { success: true };
+}
+
 // Sync pending events to server
 export async function syncEvents(): Promise<{
   synced: number;

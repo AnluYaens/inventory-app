@@ -1,5 +1,10 @@
 import type { CachedProduct } from "@/lib/db";
-import { AlertCircle, Minus, Plus, SlidersHorizontal } from "lucide-react";
+import {
+  AlertCircle,
+  DollarSign,
+  Minus,
+  Plus,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -13,17 +18,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 interface ProductCardProps {
   product: CachedProduct;
   onSell: () => Promise<{ success: boolean; error?: string }>;
   onRestock: (qty: number) => Promise<{ success: boolean; error?: string }>;
-  onAdjust: (
-    qtyChange: number,
-    note: string,
-  ) => Promise<{ success: boolean; error?: string }>;
+  onUpdatePrice: (price: number) => Promise<{ success: boolean; error?: string }>;
 }
 
 function getStockStatus(stock: number): "high" | "low" | "out" {
@@ -47,11 +48,10 @@ export function ProductCard({
   product,
   onSell,
   onRestock,
-  onAdjust,
+  onUpdatePrice,
 }: ProductCardProps) {
-  const [adjustOpen, setAdjustOpen] = useState(false);
-  const [adjustQty, setAdjustQty] = useState("");
-  const [adjustNote, setAdjustNote] = useState("");
+  const [priceOpen, setPriceOpen] = useState(false);
+  const [priceValue, setPriceValue] = useState(String(product.price));
   const [loading, setLoading] = useState<string | null>(null);
 
   const stockStatus = getStockStatus(product.stock);
@@ -82,23 +82,28 @@ export function ProductCard({
     }
   };
 
-  const handleAdjust = async () => {
-    const qty = parseInt(adjustQty);
-    if (isNaN(qty) || qty === 0) {
-      toast.error("Ingresa una cantidad valida");
+  const handleOpenPrice = () => {
+    setPriceValue(String(product.price));
+    setPriceOpen(true);
+  };
+
+  const handleUpdatePrice = async () => {
+    const parsedPrice = Number(priceValue);
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+      toast.error("Ingresa un precio valido");
       return;
     }
-    setLoading("adjust");
-    const result = await onAdjust(qty, adjustNote);
+
+    setLoading("price");
+    const result = await onUpdatePrice(parsedPrice);
     setLoading(null);
-    setAdjustOpen(false);
-    setAdjustQty("");
-    setAdjustNote("");
     if (!result.success) {
-      toast.error(result.error || "No se pudo ajustar el stock");
-    } else {
-      toast.success(`Stock ajustado en ${qty > 0 ? "+" : ""}${qty}`);
+      toast.error(result.error || "No se pudo actualizar el precio");
+      return;
     }
+
+    setPriceOpen(false);
+    toast.success("Precio actualizado");
   };
 
   const formatPrice = (price: number) => {
@@ -141,14 +146,15 @@ export function ProductCard({
         <Minus className="h-4 w-4" />
       </button>
       <button
-        onClick={() => setAdjustOpen(true)}
+        onClick={handleOpenPrice}
+        disabled={loading === "price"}
         className={cn(
           "action-btn action-btn-adjust",
           direction === "row" && "h-9 w-9",
         )}
-        title="Ajustar"
+        title="Editar precio"
       >
-        <SlidersHorizontal className="h-4 w-4" />
+        <DollarSign className="h-4 w-4" />
       </button>
     </div>
   );
@@ -239,46 +245,36 @@ export function ProductCard({
         </div>
       </div>
 
-      {/* Adjust Dialog */}
-      <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
+      {/* Price Dialog */}
+      <Dialog open={priceOpen} onOpenChange={setPriceOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Ajustar stock</DialogTitle>
+            <DialogTitle>Actualizar precio</DialogTitle>
             <DialogDescription>
-              Ajusta inventario para {product.name}. Stock actual: {product.stock}
+              Define el precio de venta para {product.name}.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="qty">Cambio de cantidad</Label>
-              <Input
-                id="qty"
-                type="number"
-                placeholder="+10 o -5"
-                value={adjustQty}
-                onChange={(event) => setAdjustQty(event.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Usa positivo para sumar stock y negativo para restar
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="note">Nota (opcional)</Label>
-              <Textarea
-                id="note"
-                placeholder="Motivo del ajuste..."
-                value={adjustNote}
-                onChange={(event) => setAdjustNote(event.target.value)}
-                rows={2}
-              />
-            </div>
+          <div className="space-y-2 py-4">
+            <Label htmlFor={`price-${product.id}`}>Precio</Label>
+            <Input
+              id={`price-${product.id}`}
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={priceValue}
+              onChange={(event) => setPriceValue(event.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Precio actual: {formatPrice(product.price)}
+            </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAdjustOpen(false)}>
+            <Button variant="outline" onClick={() => setPriceOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleAdjust} disabled={loading === "adjust"}>
-              {loading === "adjust" ? "Ajustando..." : "Aplicar ajuste"}
+            <Button onClick={handleUpdatePrice} disabled={loading === "price"}>
+              {loading === "price" ? "Guardando..." : "Guardar precio"}
             </Button>
           </DialogFooter>
         </DialogContent>
