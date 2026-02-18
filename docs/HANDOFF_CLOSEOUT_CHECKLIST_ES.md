@@ -13,7 +13,9 @@ Ejecutar en este orden:
 3. `supabase/migrations/20260214_000003_fix_apply_inventory_event_rpc_signature.sql`
 4. `supabase/migrations/20260214_000004_enable_realtime_inventory_tables.sql`
 5. `supabase/migrations/20260217_000005_admin_controls_and_void_sale.sql`
-6. Si aparece `Could not find the function public.admin_void_sale_event(...) in the schema cache`, volver a ejecutar la migracion `20260217_000005` y recargar schema cache.
+6. `supabase/migrations/20260218_000006_fix_admin_void_sale_product_id_ambiguity.sql`
+7. Si aparece `Could not find the function public.admin_void_sale_event(...) in the schema cache`, volver a ejecutar la migracion `20260217_000005` y recargar schema cache.
+8. Si aparece `column reference "product_id" is ambiguous`, ejecutar la migracion `20260218_000006`.
 
 ## Bloque C: Calidad De Catalogo (QA Fuerte)
 1. Confirmar que `client-assets/catalog-final.csv` es la version final.

@@ -141,6 +141,13 @@ export function useSalesHistory(
               "Funcion de anulacion no desplegada en Supabase. Ejecuta la migracion 20260217_000005 y recarga el schema.",
           };
         }
+        if (error.message.includes('column reference "product_id" is ambiguous')) {
+          return {
+            success: false,
+            error:
+              "Funcion de anulacion desactualizada en Supabase. Ejecuta la migracion 20260218_000006 y recarga el schema.",
+          };
+        }
         return { success: false, error: error.message };
       }
 
