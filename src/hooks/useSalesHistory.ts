@@ -146,7 +146,7 @@ export function useSalesHistory(
           return {
             success: false,
             error:
-              "Funcion de anulacion desactualizada en Supabase. Ejecuta la migracion 20260218_000006 y recarga el schema.",
+              "Funcion de anulacion desactualizada en Supabase. Ejecuta la migracion 20260218_000007 y recarga el schema.",
           };
         }
         return { success: false, error: error.message };

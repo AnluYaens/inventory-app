@@ -61,7 +61,7 @@ Contactar soporte tecnico si:
 - Aparecen conflictos repetidos sin causa.
 - Falta data de productos o imagenes.
 - Al anular venta aparece `Could not find the function public.admin_void_sale_event(...) in the schema cache` (falta migracion `20260217_000005`).
-- Al anular venta aparece `column reference "product_id" is ambiguous` (falta migracion `20260218_000006`).
+- Al anular venta aparece `column reference "product_id" is ambiguous` (falta migracion `20260218_000007`).
 
 ## 6. Regla de fotos SKU (operacion interna)
 - Cada SKU debe tener una foto con nombre exacto SKU (ej: `PANT-1234-M.png`).

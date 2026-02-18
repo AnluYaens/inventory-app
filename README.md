@@ -33,6 +33,7 @@ Run this SQL in Supabase SQL Editor:
 - `supabase/migrations/20260214_000004_enable_realtime_inventory_tables.sql`
 - `supabase/migrations/20260217_000005_admin_controls_and_void_sale.sql`
 - `supabase/migrations/20260218_000006_fix_admin_void_sale_product_id_ambiguity.sql`
+- `supabase/migrations/20260218_000007_recreate_admin_void_sale_event_without_variable_conflicts.sql`
 
 Why this script is production-safe:
 - It uses `create ... if not exists` where possible.
@@ -44,7 +45,7 @@ Note:
 - If the app shows `Could not find the function public.admin_void_sale_event(...) in the schema cache`,
   execute migration `20260217_000005_admin_controls_and_void_sale.sql` and reload schema cache.
 - If the app shows `column reference "product_id" is ambiguous` while voiding a sale,
-  execute migration `20260218_000006_fix_admin_void_sale_product_id_ambiguity.sql`.
+  execute migration `20260218_000007_recreate_admin_void_sale_event_without_variable_conflicts.sql`.
 
 ## Build checks
 
