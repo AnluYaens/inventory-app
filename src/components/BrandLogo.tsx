@@ -12,7 +12,7 @@ export function BrandLogo({
   imageClassName,
   alt = "AMEN",
 }: BrandLogoProps) {
-  const [src, setSrc] = useState("/icons/icon-192.png");
+  const [src, setSrc] = useState("/icons/icon-192.png?v=20260218-01");
 
   return (
     <div
@@ -25,7 +25,7 @@ export function BrandLogo({
         <img
           src={src}
           alt={alt}
-          className={cn("h-full w-full object-cover", imageClassName)}
+          className={cn("h-full w-full object-contain", imageClassName)}
           onError={() => setSrc("")}
         />
       ) : (
