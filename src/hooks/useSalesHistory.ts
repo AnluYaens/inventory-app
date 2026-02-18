@@ -126,7 +126,8 @@ export function useSalesHistory(
 
       const { error } = await supabase.rpc("admin_void_sale_event", {
         p_event_id: saleEventId,
-        p_reason: reason?.trim() ? reason.trim() : undefined,
+        // Always send p_reason so PostgREST resolves the intended signature.
+        p_reason: reason?.trim() ? reason.trim() : "",
       });
 
       if (error) {
