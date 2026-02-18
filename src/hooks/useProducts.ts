@@ -50,6 +50,13 @@ export function useProducts(filters: ProductFilters) {
       });
     }
 
+    results.sort((a, b) =>
+      a.sku.localeCompare(b.sku, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      }),
+    );
+
     return results;
   }, [filters.search, filters.category, filters.stockStatus]);
 
