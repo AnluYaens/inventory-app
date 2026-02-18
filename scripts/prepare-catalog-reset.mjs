@@ -130,6 +130,14 @@ function parseCsv(filePath) {
   return { headers, rows };
 }
 
+function hasCategoryHeader(headers) {
+  return headers.includes("category") || headers.includes("categoria");
+}
+
+function readCategory(row) {
+  return row.category ?? row.categoria ?? "";
+}
+
 function csvEscape(value) {
   const raw = value == null ? "" : String(value);
   if (raw.includes(",") || raw.includes('"') || raw.includes("\n")) {
@@ -317,10 +325,13 @@ async function main() {
   if (!fs.existsSync(photosDir)) throw new Error(`No existe carpeta fotos: ${photosDir}`);
 
   const { headers, rows } = parseCsv(filePath);
-  for (const required of ["sku", "price", "image_filename", "category", "reference_number"]) {
+  for (const required of ["sku", "price", "image_filename", "reference_number"]) {
     if (!headers.includes(required)) {
       throw new Error(`Falta columna requerida: ${required}`);
     }
+  }
+  if (!hasCategoryHeader(headers)) {
+    throw new Error("Falta columna requerida: category|categoria");
   }
 
   const supabase = buildSupabaseAdminClient();
@@ -361,7 +372,7 @@ async function main() {
     const next = { ...row };
     const sku = String(next.sku ?? "").trim();
     const skuUpper = sku.toUpperCase();
-    const category = String(next.category ?? "").trim().toLowerCase();
+    const category = String(readCategory(next)).trim().toLowerCase();
     const size = String(next.size ?? "").trim().toLowerCase();
     const rowNameNorm = normalizeText(next.name);
     const familyKey = toFamilyKey(skuUpper);

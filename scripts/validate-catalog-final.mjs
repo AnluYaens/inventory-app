@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const SKU_PATTERN = /^[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+$/;
 const SUPPORTED_IMAGE_EXTENSIONS = new Set([
   ".jpg",
   ".jpeg",
@@ -9,6 +8,7 @@ const SUPPORTED_IMAGE_EXTENSIONS = new Set([
   ".webp",
   ".avif",
 ]);
+const FORBIDDEN_SKU_CHARS = /[,"\r\n]/;
 
 function isPlaceholderReference(value) {
   const normalized = normalizeToken(value);
@@ -83,6 +83,14 @@ function parseCsv(filePath) {
   return { headers, rows };
 }
 
+function hasCategoryHeader(headers) {
+  return headers.includes("category") || headers.includes("categoria");
+}
+
+function readCategory(row) {
+  return row.category ?? row.categoria ?? "";
+}
+
 function normalizeToken(value) {
   return (value ?? "")
     .normalize("NFD")
@@ -116,7 +124,6 @@ function main() {
   const required = [
     "sku",
     "name",
-    "category",
     "size",
     "price",
     "initial_stock",
@@ -124,6 +131,9 @@ function main() {
     "reference_number",
   ];
   const missingHeaders = required.filter((h) => !headers.includes(h));
+  if (!hasCategoryHeader(headers)) {
+    missingHeaders.push("category|categoria");
+  }
   if (missingHeaders.length > 0) {
     throw new Error(`Faltan columnas requeridas: ${missingHeaders.join(", ")}`);
   }
@@ -150,7 +160,7 @@ function main() {
     const { line, row } = item;
     const sku = row.sku;
     const name = row.name;
-    const category = row.category;
+    const category = readCategory(row);
     const size = row.size;
     const price = row.price;
     const initialStock = row.initial_stock;
@@ -169,21 +179,14 @@ function main() {
       );
     }
 
-    if (sku && !SKU_PATTERN.test(sku)) {
-      errors.push(`Linea ${line}: sku invalido (formato esperado CAT-REF-TALLA).`);
+    if (sku && FORBIDDEN_SKU_CHARS.test(sku)) {
+      errors.push(`Linea ${line}: sku contiene caracteres no permitidos.`);
     }
 
     if (sku && seenSkus.has(sku)) {
       errors.push(`Linea ${line}: sku duplicado (${sku}).`);
     }
     if (sku) seenSkus.add(sku);
-
-    if (sku && reference) {
-      const parts = sku.split("-");
-      if (parts.length === 3 && normalizeToken(parts[1]) !== normalizeToken(reference)) {
-        errors.push(`Linea ${line}: referencia en sku no coincide con reference_number.`);
-      }
-    }
 
     if (requirePdfReference) {
       if (!("reference_source" in row)) {
@@ -252,7 +255,7 @@ function main() {
   console.log("Validacion OK.");
   console.log(`Archivo: ${filePath}`);
   console.log(`Filas: ${rows.length}`);
-  console.log("Formato SKU: CAT-REF-TALLA");
+  console.log("Formato SKU: libre (sin requerir prefijo de categoria).");
   console.log("Regla imagen: basename(image_filename) == sku (case-insensitive) y 1 foto por SKU.");
   if (requirePdfReference) {
     console.log("Regla extra: reference_source obligatorio = pdf");

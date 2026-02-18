@@ -3,10 +3,17 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProductCard } from "@/components/ProductCard";
 import { SearchFilterBar } from "@/components/SearchFilterBar";
 import { useProducts, type ProductFilters } from "@/hooks/useProducts";
-import { Loader2, Package, RefreshCw } from "lucide-react";
+import { FileSpreadsheet, Loader2, Package, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSync } from "@/contexts/SyncContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { db } from "@/lib/db";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  exportInventoryToExcel,
+  type InventoryExcelRow,
+} from "@/lib/exportInventoryExcel";
+import { toast } from "sonner";
 
 export default function InventoryPage() {
   const { refreshCache, isOnline } = useSync();
@@ -18,6 +25,7 @@ export default function InventoryPage() {
     stockStatus: "all",
   });
   const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
 
   const {
     products,
@@ -31,6 +39,89 @@ export default function InventoryPage() {
   const handleRefresh = async () => {
     if (isOnline) {
       await refreshCache();
+    }
+  };
+
+  const handleExport = async () => {
+    if (exporting) return;
+
+    setExporting(true);
+    try {
+      const allProducts = await db.products.toArray();
+      if (allProducts.length === 0) {
+        toast.error("No hay productos para exportar");
+        return;
+      }
+
+      let storeName = "AMEN";
+      if (isOnline) {
+        const { data: storeData, error: storeError } = await supabase
+          .from("store_settings")
+          .select("store_name")
+          .limit(1)
+          .maybeSingle();
+        if (!storeError && storeData?.store_name?.trim()) {
+          storeName = storeData.store_name.trim();
+        }
+      }
+
+      const latestSaleByProduct = new Map<
+        string,
+        { buyer: string; saleDate: string }
+      >();
+
+      if (isOnline) {
+        const { data: saleRows, error: saleError } = await supabase
+          .from("inventory_events")
+          .select("product_id, note, created_at")
+          .eq("type", "sale")
+          .eq("status", "applied")
+          .order("created_at", { ascending: false });
+
+        if (!saleError && saleRows) {
+          for (const sale of saleRows) {
+            if (latestSaleByProduct.has(sale.product_id)) continue;
+            const saleDate = new Date(sale.created_at);
+            latestSaleByProduct.set(sale.product_id, {
+              buyer: sale.note?.trim() || "",
+              saleDate: Number.isNaN(saleDate.getTime())
+                ? ""
+                : saleDate.toLocaleDateString("es-ES"),
+            });
+          }
+        }
+      }
+
+      const rows: InventoryExcelRow[] = allProducts.map((product) => {
+        const quantity = Math.max(0, Number(product.stock) || 0);
+        const unitCostEur = Number(product.cost ?? 0);
+        const totalCostEur = Number((unitCostEur * quantity).toFixed(2));
+        const finalPrice = Number(Number(product.price ?? 0).toFixed(2));
+        const lastSale = latestSaleByProduct.get(product.id);
+
+        return {
+          storeName,
+          sku: product.sku || "-",
+          description: product.name || "-",
+          category: product.category?.trim() || "-",
+          size: product.size?.trim() || "-",
+          color: product.color?.trim() || "",
+          quantity,
+          unitCostEur,
+          totalCostEur,
+          finalPrice,
+          buyer: lastSale?.buyer || "",
+          saleDate: lastSale?.saleDate || "",
+        };
+      });
+
+      exportInventoryToExcel(rows);
+      toast.success(`Excel exportado (${rows.length} productos)`);
+    } catch (error) {
+      console.error("No se pudo exportar inventario:", error);
+      toast.error("No se pudo exportar a Excel");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -51,24 +142,34 @@ export default function InventoryPage() {
     <AppLayout>
       <div className="p-4 space-y-4 max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div>
             <h1 className="text-xl font-bold">Inventario</h1>
             <p className="text-sm text-muted-foreground">
               {products.length} producto{products.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={!isOnline || loading}
-          >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
-            />
-            Actualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={!isOnline || loading}
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+              />
+              Actualizar
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => void handleExport()}
+              disabled={loading || exporting}
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              {exporting ? "Exportando..." : "Exportar Excel"}
+            </Button>
+          </div>
         </div>
 
         {/* Search & Filters */}

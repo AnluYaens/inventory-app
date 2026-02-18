@@ -115,6 +115,10 @@ function normalizeNameKey(value) {
     .toLowerCase();
 }
 
+function readCategory(row) {
+  return row?.category ?? row?.categoria ?? "";
+}
+
 function categoryCode(category) {
   const normalized = cleanToken(category);
   if (!normalized) return "GENR";
@@ -345,7 +349,7 @@ function main() {
       const current = pageRows[idx];
       const staging = pickStagingMatch(current, stagingPool, fallbackIndexRef);
 
-      const categoryFinal = cleanName(staging?.category || current.category || "");
+      const categoryFinal = cleanName(readCategory(staging) || readCategory(current) || "");
       const sizeFinal = cleanName(staging?.size || current.size || "UNICA");
       const namePdf = cleanName(staging?.name_raw || "");
       const nameFinal = namePdf || cleanName(current.name || "");
@@ -388,7 +392,7 @@ function main() {
         name_current: current.name || "",
         name_pdf: namePdf,
         name_suggested: nameFinal,
-        category_current: current.category || "",
+        category_current: readCategory(current) || "",
         category_suggested: categoryFinal,
         size_current: current.size || "",
         size_suggested: sizeFinal,

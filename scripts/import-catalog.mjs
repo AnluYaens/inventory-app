@@ -116,6 +116,19 @@ function parseCsv(text) {
   return { headers, rows };
 }
 
+function readCategory(row, sku) {
+  const explicitCategory = row.category?.trim() || row.categoria?.trim();
+  if (explicitCategory) return explicitCategory;
+
+  // Legacy fallback: derive category code from SKU prefix only when alpha.
+  const prefix = String(sku ?? "")
+    .trim()
+    .split("-")[0]
+    ?.toUpperCase()
+    .replace(/[^A-Z]/g, "");
+  return /^[A-Z]{3,6}$/.test(prefix ?? "") ? prefix : null;
+}
+
 function toNumber(value, label, line, { allowNull = false } = {}) {
   if (value === "" || value == null) {
     if (allowNull) return { value: null };
@@ -168,7 +181,7 @@ function resolveImageUrl(imageFilename, manifestMap) {
 function normalizeRecord({ row, line }, manifestMap, seenSkus) {
   const sku = row.sku?.trim();
   const name = row.name?.trim();
-  const category = row.category?.trim() || null;
+  const category = readCategory(row, sku);
   const size = row.size?.trim() || null;
   const color = row.color?.trim() || null;
   const imageFilename = row.image_filename?.trim();
