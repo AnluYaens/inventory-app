@@ -130,6 +130,17 @@ export function useSalesHistory(
       });
 
       if (error) {
+        if (
+          error.message.includes(
+            "Could not find the function public.admin_void_sale_event",
+          )
+        ) {
+          return {
+            success: false,
+            error:
+              "Funcion de anulacion no desplegada en Supabase. Ejecuta la migracion 20260217_000005 y recarga el schema.",
+          };
+        }
         return { success: false, error: error.message };
       }
 

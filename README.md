@@ -31,6 +31,7 @@ Run this SQL in Supabase SQL Editor:
 - `supabase/migrations/20260213_000002_inventory_event_idempotency.sql`
 - `supabase/migrations/20260214_000003_fix_apply_inventory_event_rpc_signature.sql`
 - `supabase/migrations/20260214_000004_enable_realtime_inventory_tables.sql`
+- `supabase/migrations/20260217_000005_admin_controls_and_void_sale.sql`
 
 Why this script is production-safe:
 - It uses `create ... if not exists` where possible.
@@ -39,6 +40,8 @@ Why this script is production-safe:
 
 Note:
 - Supabase can still show a warning dialog before execution. That is a generic safety check.
+- If the app shows `Could not find the function public.admin_void_sale_event(...) in the schema cache`,
+  execute migration `20260217_000005_admin_controls_and_void_sale.sql` and reload schema cache.
 
 ## Build checks
 
