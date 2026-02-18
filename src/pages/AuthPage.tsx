@@ -71,9 +71,6 @@ export default function AuthPage() {
           <BrandLogo containerClassName="mb-4 h-14 w-14 rounded-2xl bg-primary/10 border-primary/20" />
           <h1 className="text-2xl font-bold">AMEN</h1>
           <p className="text-sm text-muted-foreground mt-1">Inicia sesion en tu cuenta</p>
-          <p className="text-xs text-muted-foreground mt-2">
-            Las cuentas se crean unicamente desde el panel de Supabase.
-          </p>
         </div>
 
         {/* Form */}
