@@ -45,11 +45,14 @@
 
 ## 4.1 Anulacion de venta (solo admin)
 1. Ir a `Ventas` y ubicar la transaccion.
-2. Click en `Anular venta`.
+2. Elige una accion:
+- `Anular venta`: elimina la venta y restaura stock.
+- `Borrar venta`: elimina la venta sin cambiar stock.
 3. Confirmar accion y agregar motivo opcional.
 4. Verificar que:
-- la venta desaparece del historial,
-- el stock del producto se restaura.
+- la venta desaparece del historial.
+- en `Anular venta`, el stock del producto se restaura.
+- en `Borrar venta`, el stock no cambia.
 
 ## 4.2 Control de permisos
 - `admin`: puede modificar inventario (`+`, `-`) y precio (`$`), y anular ventas.

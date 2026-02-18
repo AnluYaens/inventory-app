@@ -8,7 +8,12 @@ interface SalesListProps {
   sales: SaleEvent[];
   currency?: string;
   canVoid?: boolean;
+  canDelete?: boolean;
   onVoidSale?: (
+    sale: SaleEvent,
+    reason?: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  onDeleteSale?: (
     sale: SaleEvent,
     reason?: string,
   ) => Promise<{ success: boolean; error?: string }>;
@@ -18,9 +23,11 @@ export function SalesList({
   sales,
   currency = "USD",
   canVoid = false,
+  canDelete = false,
   onVoidSale,
+  onDeleteSale,
 }: SalesListProps) {
-  const [voidingSaleId, setVoidingSaleId] = useState<string | null>(null);
+  const [processingSaleId, setProcessingSaleId] = useState<string | null>(null);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("es-US", {
@@ -39,11 +46,29 @@ export function SalesList({
 
     const reasonInput = window.prompt("Motivo (opcional):", "") ?? "";
 
-    setVoidingSaleId(sale.id);
+    setProcessingSaleId(sale.id);
     try {
       await onVoidSale(sale, reasonInput);
     } finally {
-      setVoidingSaleId(null);
+      setProcessingSaleId(null);
+    }
+  };
+
+  const handleDeleteSale = async (sale: SaleEvent) => {
+    if (!canDelete || !onDeleteSale) return;
+
+    const confirmed = window.confirm(
+      "Esta accion borrara la venta del historial y NO restaurara stock. Deseas continuar?",
+    );
+    if (!confirmed) return;
+
+    const reasonInput = window.prompt("Motivo (opcional):", "") ?? "";
+
+    setProcessingSaleId(sale.id);
+    try {
+      await onDeleteSale(sale, reasonInput);
+    } finally {
+      setProcessingSaleId(null);
     }
   };
 
@@ -103,17 +128,30 @@ export function SalesList({
                   <p className="text-xs text-muted-foreground">
                     Cantidad: {Math.abs(sale.qtyChange)}
                   </p>
-                  {canVoid && onVoidSale && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => void handleVoidSale(sale)}
-                      disabled={voidingSaleId === sale.id}
-                    >
-                      {voidingSaleId === sale.id ? "Anulando..." : "Anular venta"}
-                    </Button>
-                  )}
+                  <div className="mt-2 flex flex-col gap-2 items-end">
+                    {canVoid && onVoidSale && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleVoidSale(sale)}
+                        disabled={processingSaleId === sale.id}
+                      >
+                        {processingSaleId === sale.id ? "Procesando..." : "Anular venta"}
+                      </Button>
+                    )}
+                    {canDelete && onDeleteSale && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => void handleDeleteSale(sale)}
+                        disabled={processingSaleId === sale.id}
+                      >
+                        {processingSaleId === sale.id
+                          ? "Procesando..."
+                          : "Borrar venta"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

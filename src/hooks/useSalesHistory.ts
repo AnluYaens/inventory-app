@@ -158,6 +158,38 @@ export function useSalesHistory(
     [fetchSales],
   );
 
+  const deleteSale = useCallback(
+    async (saleEventId: string, reason?: string) => {
+      if (!isOnline()) {
+        return { success: false, error: "Sin conexion. Intenta de nuevo en linea." };
+      }
+
+      const { error } = await supabase.rpc("admin_delete_sale_event", {
+        p_event_id: saleEventId,
+        p_reason: reason?.trim() ? reason.trim() : "",
+      });
+
+      if (error) {
+        if (
+          error.message.includes(
+            "Could not find the function public.admin_delete_sale_event",
+          )
+        ) {
+          return {
+            success: false,
+            error:
+              "Funcion para borrar venta no desplegada en Supabase. Ejecuta la migracion 20260218_000008 y recarga el schema.",
+          };
+        }
+        return { success: false, error: error.message };
+      }
+
+      await fetchSales();
+      return { success: true };
+    },
+    [fetchSales],
+  );
+
   const summary = useMemo(() => {
     const totalItems = sales.reduce((sum, sale) => sum + Math.abs(sale.qtyChange), 0);
     const totalRevenue = sales.reduce(
@@ -168,5 +200,13 @@ export function useSalesHistory(
     return { totalItems, totalRevenue };
   }, [sales]);
 
-  return { sales, summary, loading, dateRange, refetch: fetchSales, voidSale };
+  return {
+    sales,
+    summary,
+    loading,
+    dateRange,
+    refetch: fetchSales,
+    voidSale,
+    deleteSale,
+  };
 }

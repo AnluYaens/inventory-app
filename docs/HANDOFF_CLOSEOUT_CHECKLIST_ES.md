@@ -15,8 +15,10 @@ Ejecutar en este orden:
 5. `supabase/migrations/20260217_000005_admin_controls_and_void_sale.sql`
 6. `supabase/migrations/20260218_000006_fix_admin_void_sale_product_id_ambiguity.sql`
 7. `supabase/migrations/20260218_000007_recreate_admin_void_sale_event_without_variable_conflicts.sql`
-8. Si aparece `Could not find the function public.admin_void_sale_event(...) in the schema cache`, volver a ejecutar la migracion `20260217_000005` y recargar schema cache.
-9. Si aparece `column reference "product_id" is ambiguous`, ejecutar la migracion `20260218_000007`.
+8. `supabase/migrations/20260218_000008_admin_delete_sale_without_restock.sql`
+9. Si aparece `Could not find the function public.admin_void_sale_event(...) in the schema cache`, volver a ejecutar la migracion `20260217_000005` y recargar schema cache.
+10. Si aparece `column reference "product_id" is ambiguous`, ejecutar la migracion `20260218_000007`.
+11. Si aparece `Could not find the function public.admin_delete_sale_event(...) in the schema cache`, ejecutar la migracion `20260218_000008`.
 
 ## Bloque C: Calidad De Catalogo (QA Fuerte)
 1. Confirmar que `client-assets/catalog-final.csv` es la version final.

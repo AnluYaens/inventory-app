@@ -14,7 +14,7 @@ import { toast } from "sonner";
 
 export default function SoldPage() {
   const [dateFilter, setDateFilter] = useState<DateFilter>("today");
-  const { sales, summary, loading, dateRange, voidSale } =
+  const { sales, summary, loading, dateRange, voidSale, deleteSale } =
     useSalesHistory(dateFilter);
   const { isOnline } = useSync();
   const { role } = useAuth();
@@ -28,6 +28,17 @@ export default function SoldPage() {
     }
 
     toast.success("Venta anulada y stock restaurado");
+    return result;
+  };
+
+  const handleDeleteSale = async (sale: SaleEvent, reason?: string) => {
+    const result = await deleteSale(sale.id, reason);
+    if (!result.success) {
+      toast.error(result.error || "No se pudo borrar la venta");
+      return result;
+    }
+
+    toast.success("Venta borrada sin modificar stock");
     return result;
   };
 
@@ -77,13 +88,15 @@ export default function SoldPage() {
               <h2 className="font-semibold mb-3">Transacciones</h2>
               {!canVoidSales && (
                 <p className="text-xs text-muted-foreground mb-3">
-                  Solo administradores pueden anular ventas.
+                  Solo administradores pueden anular o borrar ventas.
                 </p>
               )}
               <SalesList
                 sales={sales}
                 canVoid={canVoidSales}
                 onVoidSale={handleVoidSale}
+                canDelete={canVoidSales}
+                onDeleteSale={handleDeleteSale}
               />
             </div>
           </>

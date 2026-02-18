@@ -34,6 +34,7 @@ Run this SQL in Supabase SQL Editor:
 - `supabase/migrations/20260217_000005_admin_controls_and_void_sale.sql`
 - `supabase/migrations/20260218_000006_fix_admin_void_sale_product_id_ambiguity.sql`
 - `supabase/migrations/20260218_000007_recreate_admin_void_sale_event_without_variable_conflicts.sql`
+- `supabase/migrations/20260218_000008_admin_delete_sale_without_restock.sql`
 
 Why this script is production-safe:
 - It uses `create ... if not exists` where possible.

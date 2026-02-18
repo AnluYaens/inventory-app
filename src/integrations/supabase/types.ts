@@ -197,6 +197,17 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      admin_delete_sale_event: {
+        Args: {
+          p_event_id: string;
+          p_reason?: string;
+        };
+        Returns: {
+          deleted_event_id: string;
+          product_id: string;
+          qty_change: number;
+        }[];
+      };
       apply_inventory_event: {
         Args: {
           p_device_id?: string;
