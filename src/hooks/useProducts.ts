@@ -14,6 +14,19 @@ export interface ProductFilters {
   stockStatus: "all" | "in-stock" | "low-stock" | "out-of-stock";
 }
 
+function normalizeSearchText(value: string | null | undefined): string {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeCompactText(value: string | null | undefined): string {
+  return normalizeSearchText(value).replace(/[^a-z0-9]/g, "");
+}
+
 export function useProducts(filters: ProductFilters) {
   const [loading, setLoading] = useState(true);
 
@@ -24,12 +37,27 @@ export function useProducts(filters: ProductFilters) {
 
     // Apply search filter
     if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
+      const searchText = normalizeSearchText(filters.search);
+      const searchCompact = normalizeCompactText(filters.search);
       results = results.filter(
-        (p) =>
-          p.name.toLowerCase().includes(searchLower) ||
-          p.sku.toLowerCase().includes(searchLower) ||
-          p.category?.toLowerCase().includes(searchLower),
+        (p) => {
+          const nameText = normalizeSearchText(p.name);
+          const skuText = normalizeSearchText(p.sku);
+          const categoryText = normalizeSearchText(p.category);
+
+          if (
+            nameText.includes(searchText) ||
+            skuText.includes(searchText) ||
+            categoryText.includes(searchText)
+          ) {
+            return true;
+          }
+
+          if (!searchCompact) return false;
+
+          const skuCompact = normalizeCompactText(p.sku);
+          return skuCompact.includes(searchCompact);
+        },
       );
     }
 
