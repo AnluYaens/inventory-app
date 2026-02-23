@@ -22,8 +22,8 @@ import {
 import { toast } from "sonner";
 
 export default function InventoryPage() {
-  const catalogPdfUrl =
-    String(import.meta.env.VITE_CATALOG_PDF_URL ?? "").trim() || "/catalogo.pdf";
+  const rawCatalogPdfUrl = String(import.meta.env.VITE_CATALOG_PDF_URL ?? "").trim();
+  const catalogPdfUrl = rawCatalogPdfUrl || "/catalogo.pdf";
   const { refreshCache, isOnline } = useSync();
   const { role } = useAuth();
   const PAGE_SIZE = 25;
@@ -52,7 +52,25 @@ export default function InventoryPage() {
   };
 
   const handleOpenCatalogPdf = () => {
-    window.open(catalogPdfUrl, "_blank", "noopener,noreferrer");
+    try {
+      const parsed = new URL(catalogPdfUrl, window.location.origin);
+      const isSameOriginFile = parsed.origin === window.location.origin;
+      const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
+
+      if (!isHttp) {
+        toast.error("URL de catálogo inválida");
+        return;
+      }
+
+      if (!isSameOriginFile && parsed.protocol !== "https:") {
+        toast.error("La URL externa del catálogo debe usar HTTPS");
+        return;
+      }
+
+      window.open(parsed.toString(), "_blank", "noopener,noreferrer");
+    } catch {
+      toast.error("No se pudo abrir el catálogo PDF");
+    }
   };
 
   const handleExport = async () => {
@@ -240,7 +258,7 @@ export default function InventoryPage() {
                   key={product.id}
                   product={product}
                   canManage={canManageInventory}
-                  onSell={() => sellProduct(product.id)}
+                  onSell={(buyerName) => sellProduct(product.id, buyerName)}
                   onRestock={(qty) => restockProduct(product.id, qty)}
                   onUpdatePrice={(price) => setProductPrice(product.id, price)}
                 />

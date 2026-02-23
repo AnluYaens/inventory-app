@@ -87,8 +87,9 @@ export function useProducts(filters: ProductFilters) {
   }, []);
 
   // Actions
-  const sellProduct = useCallback(async (productId: string) => {
-    return queueInventoryEvent(productId, "sale", -1);
+  const sellProduct = useCallback(async (productId: string, buyerName?: string) => {
+    const note = buyerName?.trim() ? buyerName.trim() : null;
+    return queueInventoryEvent(productId, "sale", -1, note);
   }, []);
 
   const restockProduct = useCallback(

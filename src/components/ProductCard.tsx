@@ -25,7 +25,7 @@ import { getProductVisualTheme } from "@/lib/productVisualTheme";
 interface ProductCardProps {
   product: CachedProduct;
   canManage: boolean;
-  onSell: () => Promise<{ success: boolean; error?: string }>;
+  onSell: (buyerName?: string) => Promise<{ success: boolean; error?: string }>;
   onRestock: (qty: number) => Promise<{ success: boolean; error?: string }>;
   onUpdatePrice: (price: number) => Promise<{ success: boolean; error?: string }>;
 }
@@ -56,6 +56,8 @@ export function ProductCard({
 }: ProductCardProps) {
   const [priceOpen, setPriceOpen] = useState(false);
   const [priceValue, setPriceValue] = useState(String(product.price));
+  const [sellOpen, setSellOpen] = useState(false);
+  const [buyerName, setBuyerName] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
 
@@ -64,6 +66,19 @@ export function ProductCard({
   const visualTheme = getProductVisualTheme(product.category, product.color);
   const showProductImage =
     Boolean(product.image_url) && failedImageUrl !== product.image_url;
+
+  const handleOpenSell = () => {
+    if (!canManage) {
+      toast.error("Solo admin puede modificar inventario");
+      return;
+    }
+    if (product.stock <= 0) {
+      toast.error("No se puede vender: sin stock");
+      return;
+    }
+    setBuyerName("");
+    setSellOpen(true);
+  };
 
   const handleSell = async () => {
     if (!canManage) {
@@ -75,11 +90,12 @@ export function ProductCard({
       return;
     }
     setLoading("sell");
-    const result = await onSell();
+    const result = await onSell(buyerName);
     setLoading(null);
     if (!result.success) {
       toast.error(result.error || "No se pudo registrar la venta");
     } else {
+      setSellOpen(false);
       toast.success("Venta registrada");
     }
   };
@@ -160,7 +176,7 @@ export function ProductCard({
         <Plus className="h-4 w-4" />
       </button>
       <button
-        onClick={handleSell}
+        onClick={handleOpenSell}
         disabled={loading === "sell" || product.stock <= 0}
         className={cn(
           "action-btn action-btn-sell",
@@ -309,6 +325,51 @@ export function ProductCard({
           )}
         </div>
       </div>
+
+      {/* Price Dialog */}
+      <Dialog
+        open={sellOpen}
+        onOpenChange={(open) => {
+          if (loading === "sell") return;
+          setSellOpen(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registrar venta</DialogTitle>
+            <DialogDescription>
+              Puedes agregar el nombre de la compradora para exportarlo luego en Excel.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            <Label htmlFor={`buyer-${product.id}`}>Nombre de la compradora (opcional)</Label>
+            <Input
+              id={`buyer-${product.id}`}
+              type="text"
+              placeholder="Ej. Maria"
+              value={buyerName}
+              onChange={(event) => setBuyerName(event.target.value)}
+              maxLength={120}
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground">
+              Producto: {product.name} ({product.sku})
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSellOpen(false)}
+              disabled={loading === "sell"}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleSell} disabled={loading === "sell"}>
+              {loading === "sell" ? "Registrando..." : "Confirmar venta"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Price Dialog */}
       <Dialog open={priceOpen} onOpenChange={setPriceOpen}>
