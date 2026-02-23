@@ -1,9 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { ProductCard } from "@/components/ProductCard";
 import { SearchFilterBar } from "@/components/SearchFilterBar";
 import { useProducts, type ProductFilters } from "@/hooks/useProducts";
-import { FileSpreadsheet, Loader2, Package, RefreshCw } from "lucide-react";
+import {
+  FileSpreadsheet,
+  FileText,
+  Loader2,
+  Package,
+  RefreshCw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSync } from "@/contexts/SyncContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,9 +22,11 @@ import {
 import { toast } from "sonner";
 
 export default function InventoryPage() {
+  const catalogPdfUrl =
+    String(import.meta.env.VITE_CATALOG_PDF_URL ?? "").trim() || "/catalogo.pdf";
   const { refreshCache, isOnline } = useSync();
   const { role } = useAuth();
-  const PAGE_SIZE = 50;
+  const PAGE_SIZE = 25;
   const [filters, setFilters] = useState<ProductFilters>({
     search: "",
     category: null,
@@ -26,6 +34,7 @@ export default function InventoryPage() {
   });
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
+  const didMountRef = useRef(false);
 
   const {
     products,
@@ -40,6 +49,10 @@ export default function InventoryPage() {
     if (isOnline) {
       await refreshCache();
     }
+  };
+
+  const handleOpenCatalogPdf = () => {
+    window.open(catalogPdfUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleExport = async () => {
@@ -129,6 +142,14 @@ export default function InventoryPage() {
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
   const currentPage = Math.min(Math.max(page, 1), totalPages);
 
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
+
   const visibleProducts = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
     return products.slice(start, start + PAGE_SIZE);
@@ -150,6 +171,16 @@ export default function InventoryPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenCatalogPdf}
+              title={`Abrir catálogo PDF (${catalogPdfUrl})`}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Catálogo PDF</span>
+              <span className="sm:hidden">PDF</span>
+            </Button>
             <Button
               variant="outline"
               size="sm"

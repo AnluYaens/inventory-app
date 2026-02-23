@@ -17,10 +17,16 @@ export function DateFilterBar({
   onFilterChange,
 }: DateFilterBarProps) {
   return (
-    <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+    <div
+      className="grid grid-cols-1 gap-2 pb-1 sm:flex sm:flex-wrap sm:items-center"
+      role="group"
+      aria-label="Filtro de fecha"
+    >
       {filterOptions.map((option) => (
         <button
           key={option.value}
+          type="button"
+          aria-pressed={activeFilter === option.value}
           onClick={() => onFilterChange(option.value)}
           className={cn(
             "filter-chip whitespace-nowrap",

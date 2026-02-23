@@ -19,6 +19,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { getCategoryIcon } from "@/lib/categoryIcon";
+import { getProductVisualTheme } from "@/lib/productVisualTheme";
 
 interface ProductCardProps {
   product: CachedProduct;
@@ -55,8 +57,13 @@ export function ProductCard({
   const [priceOpen, setPriceOpen] = useState(false);
   const [priceValue, setPriceValue] = useState(String(product.price));
   const [loading, setLoading] = useState<string | null>(null);
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
 
   const stockStatus = getStockStatus(product.stock);
+  const categoryIcon = getCategoryIcon(product.category);
+  const visualTheme = getProductVisualTheme(product.category, product.color);
+  const showProductImage =
+    Boolean(product.image_url) && failedImageUrl !== product.image_url;
 
   const handleSell = async () => {
     if (!canManage) {
@@ -183,15 +190,35 @@ export function ProductCard({
       <div className="product-card animate-fade-in h-full">
         <div className="flex gap-3 items-start">
           {/* Product Image */}
-          <div className="h-14 w-14 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
-            {product.image_url ? (
+          <div
+            className={cn(
+              "relative h-14 w-14 rounded-xl flex items-center justify-center shrink-0 overflow-hidden border",
+              showProductImage ? "bg-secondary border-transparent" : visualTheme.tileClassName,
+            )}
+          >
+            {showProductImage ? (
               <img
-                src={product.image_url}
+                src={product.image_url ?? undefined}
                 alt={product.name}
                 className="w-full h-full object-cover"
+                onError={() => setFailedImageUrl(product.image_url ?? null)}
               />
             ) : (
-              <span className="text-2xl text-muted-foreground/50">📦</span>
+              <>
+                <span className="text-2xl" aria-hidden="true">
+                  {categoryIcon}
+                </span>
+                {product.color && (
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "absolute right-1 top-1 h-2.5 w-2.5 rounded-full border border-white/80 shadow-sm",
+                      visualTheme.swatchClassName,
+                    )}
+                    title={product.color}
+                  />
+                )}
+              </>
             )}
           </div>
 
@@ -199,7 +226,7 @@ export function ProductCard({
           <div className="min-w-0 flex-1 space-y-2.5">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="font-medium text-sm leading-snug break-words">
+                <h3 className="font-medium text-sm leading-snug wrap-break-word">
                   {product.name}
                 </h3>
                 <p className="text-xs text-muted-foreground truncate max-w-full">
@@ -224,7 +251,17 @@ export function ProductCard({
                 </span>
               )}
               {product.color && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-secondary text-secondary-foreground">
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-secondary text-secondary-foreground"
+                  title={`Color: ${product.color}`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "h-2 w-2 rounded-full border border-white/80 shadow-sm",
+                      visualTheme.swatchClassName,
+                    )}
+                  />
                   {product.color}
                 </span>
               )}

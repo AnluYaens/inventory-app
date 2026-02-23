@@ -27,7 +27,11 @@ export function AppLayout({
         <header className="md:hidden sticky top-0 z-40 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
-              <button className="p-2 -ml-2 hover:bg-secondary rounded-lg transition-colors touch-target">
+              <button
+                type="button"
+                aria-label="Abrir menú"
+                className="p-2 -ml-2 hover:bg-secondary rounded-lg transition-colors touch-target"
+              >
                 <Menu className="h-5 w-5" />
               </button>
             </SheetTrigger>
