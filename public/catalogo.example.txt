@@ -1,0 +1,12 @@
+Este archivo es solo un ejemplo.
+
+Para habilitar el boton "Catalogo PDF" en la app:
+
+1. Coloca el catalogo real del cliente en:
+   public/catalogo.pdf
+
+2. Ese archivo NO se sube al repositorio (esta en .gitignore).
+
+Opcional:
+- En lugar de un archivo local, puedes usar una URL configurando
+  VITE_CATALOG_PDF_URL en .env.local.

@@ -31,3 +31,6 @@ artifacts/
 client-assets/
 images-manifest.json
 import-report-*.json
+
+# Local customer catalog PDF (keep local, do not commit)
+public/catalogo.pdf
