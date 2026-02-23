@@ -7,7 +7,6 @@ const REQUIRED_COLUMNS = [
   "name",
   "price",
   "initial_stock",
-  "image_filename",
 ];
 
 function loadDotEnv() {
@@ -57,6 +56,14 @@ function parseArgs(argv) {
     i += 1;
   }
   return args;
+}
+
+function parseImageMode(value) {
+  const mode = (value ?? "photos").trim().toLowerCase();
+  if (mode !== "photos" && mode !== "icons") {
+    throw new Error("El parametro --image-mode debe ser photos o icons.");
+  }
+  return mode;
 }
 
 function parseCsvLine(line) {
@@ -178,7 +185,7 @@ function resolveImageUrl(imageFilename, manifestMap) {
   return manifestMap[imageFilename] ?? null;
 }
 
-function normalizeRecord({ row, line }, manifestMap, seenSkus) {
+function normalizeRecord({ row, line }, manifestMap, seenSkus, imageMode) {
   const sku = row.sku?.trim();
   const name = row.name?.trim();
   const category = readCategory(row, sku);
@@ -212,15 +219,18 @@ function normalizeRecord({ row, line }, manifestMap, seenSkus) {
     return { error: `${notePrefix} initial_stock no puede ser negativo.` };
   }
 
-  if (!imageFilename) {
-    return { error: `${notePrefix} image_filename es obligatorio.` };
-  }
+  let imageUrl = null;
+  if (imageMode === "photos") {
+    if (!imageFilename) {
+      return { error: `${notePrefix} image_filename es obligatorio.` };
+    }
 
-  const imageUrl = resolveImageUrl(imageFilename, manifestMap);
-  if (!imageUrl) {
-    return {
-      error: `${notePrefix} no se encontro URL para image_filename (${imageFilename}).`,
-    };
+    imageUrl = resolveImageUrl(imageFilename, manifestMap);
+    if (!imageUrl) {
+      return {
+        error: `${notePrefix} no se encontro URL para image_filename (${imageFilename}).`,
+      };
+    }
   }
 
   return {
@@ -233,7 +243,7 @@ function normalizeRecord({ row, line }, manifestMap, seenSkus) {
       price: price.value,
       cost: cost.value,
       initial_stock: stock.value,
-      image_filename: imageFilename,
+      image_filename: imageFilename || null,
       image_url: imageUrl,
     },
   };
@@ -314,9 +324,10 @@ async function applyImport(records) {
   return { inserted, updated };
 }
 
-function writeReport({ mode, file, records, inserted, updated }) {
+function writeReport({ mode, imageMode, file, records, inserted, updated }) {
   const report = {
     mode,
+    image_mode: imageMode,
     file,
     total_rows: records.length,
     inserted,
@@ -335,11 +346,12 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const file = args.get("file");
   const mode = args.get("mode") ?? "dry-run";
+  const imageMode = parseImageMode(args.get("image-mode"));
   const manifestPath = args.get("images-manifest");
 
   if (!file) {
     throw new Error(
-      "Uso: npm run import:catalog -- --file <ruta.csv> --mode <dry-run|apply> [--images-manifest <manifest.json>]"
+      "Uso: npm run import:catalog -- --file <ruta.csv> --mode <dry-run|apply> [--image-mode photos|icons] [--images-manifest <manifest.json>]"
     );
   }
 
@@ -355,18 +367,20 @@ async function main() {
 
   const text = fs.readFileSync(file, "utf8");
   const { headers, rows } = parseCsv(text);
-  const missingColumns = REQUIRED_COLUMNS.filter((column) => !headers.includes(column));
+  const requiredColumns = [...REQUIRED_COLUMNS];
+  if (imageMode === "photos") requiredColumns.push("image_filename");
+  const missingColumns = requiredColumns.filter((column) => !headers.includes(column));
   if (missingColumns.length > 0) {
     throw new Error(`Faltan columnas requeridas: ${missingColumns.join(", ")}`);
   }
 
-  const manifestMap = readImagesManifest(manifestPath);
+  const manifestMap = imageMode === "photos" ? readImagesManifest(manifestPath) : null;
   const errors = [];
   const records = [];
   const seenSkus = new Set();
 
   for (const rowInfo of rows) {
-    const parsed = normalizeRecord(rowInfo, manifestMap, seenSkus);
+    const parsed = normalizeRecord(rowInfo, manifestMap, seenSkus, imageMode);
     if (parsed.error) {
       errors.push(parsed.error);
       continue;
@@ -385,6 +399,7 @@ async function main() {
   if (mode === "dry-run") {
     console.log("Dry-run exitoso.");
     console.log(`Archivo: ${path.resolve(file)}`);
+    console.log(`Modo imagen: ${imageMode}`);
     console.log(`Rows validas: ${records.length}`);
     console.log("No se escribieron cambios en Supabase.");
     return;
@@ -393,6 +408,7 @@ async function main() {
   const { inserted, updated } = await applyImport(records);
   const reportName = writeReport({
     mode,
+    imageMode,
     file: path.resolve(file),
     records,
     inserted,
@@ -400,6 +416,7 @@ async function main() {
   });
 
   console.log("Importacion aplicada correctamente.");
+  console.log(`Modo imagen: ${imageMode}`);
   console.log(`Insertados: ${inserted}`);
   console.log(`Actualizados: ${updated}`);
   console.log(`Reporte: ${reportName}`);

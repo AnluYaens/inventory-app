@@ -11,6 +11,8 @@
     "catalog:build-review": "node scripts/build-catalog-review.mjs",
     "catalog:review-gate": "node scripts/build-catalog-review.mjs --fail-on-pending true",
     "catalog:prepare-reset": "node scripts/prepare-catalog-reset.mjs",
+    "catalog:convert-xlsx": "node scripts/convert-inventory-xlsx-to-catalog.mjs",
+    "catalog:prepare-images": "node scripts/prepare-image-coverage-for-new-skus.mjs",
     "catalog:reconcile-images": "node scripts/reconcile-sku-images.mjs",
     "catalog:validate": "node scripts/validate-catalog-final.mjs",
     "catalog:patch-names": "node scripts/patch-product-names.mjs",

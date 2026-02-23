@@ -20,6 +20,14 @@ function parseArgs(argv) {
   return args;
 }
 
+function parseImageMode(value) {
+  const mode = (value ?? "photos").trim().toLowerCase();
+  if (!["photos", "icons"].includes(mode)) {
+    throw new Error("--image-mode debe ser photos o icons.");
+  }
+  return mode;
+}
+
 function loadDotEnv() {
   for (const envFile of [".env.local", ".env"]) {
     const envPath = path.resolve(envFile);
@@ -190,6 +198,7 @@ async function main() {
   loadDotEnv();
   const args = parseArgs(process.argv.slice(2));
   const mode = (args.get("mode") ?? "dry-run").toLowerCase();
+  const imageMode = parseImageMode(args.get("image-mode"));
   const catalogFile = path.resolve(args.get("file") ?? "./client-assets/catalog-final.csv");
   const photosDir = path.resolve(args.get("photos") ?? "./client-assets/photos-sku");
   const imagesManifestPath = path.resolve(args.get("images-manifest") ?? "./images-manifest.json");
@@ -203,7 +212,9 @@ async function main() {
   }
 
   if (!fs.existsSync(catalogFile)) throw new Error(`No existe archivo: ${catalogFile}`);
-  if (!fs.existsSync(photosDir)) throw new Error(`No existe carpeta fotos: ${photosDir}`);
+  if (imageMode === "photos" && !fs.existsSync(photosDir)) {
+    throw new Error(`No existe carpeta fotos: ${photosDir}`);
+  }
 
   const stamp = nowStamp();
   const runDir = path.resolve(`./artifacts/live-reset/${stamp}`);
@@ -229,9 +240,10 @@ async function main() {
     mode,
     generated_at: new Date().toISOString(),
     inputs: {
+      image_mode: imageMode,
       file: catalogFile,
-      photos: photosDir,
-      images_manifest: imagesManifestPath,
+      photos: imageMode === "photos" ? photosDir : null,
+      images_manifest: imageMode === "photos" ? imagesManifestPath : null,
       backup_dir: backupDir,
       bucket,
       confirm_reset: confirmReset,
@@ -246,70 +258,87 @@ async function main() {
 
   const supabase = buildSupabaseAdminClient();
 
-  console.log("Step 1/7: Preflight reconcile + validate + import dry-run");
-  runNodeScript(
-    "./scripts/reconcile-sku-images.mjs",
-    [
-      "--file",
-      catalogFile,
-      "--photos",
-      photosDir,
-      "--out",
-      reconciledFile,
-      "--report-base",
-      reconcileReportBase,
-    ],
-    reconcileLog,
+  console.log(
+    imageMode === "photos"
+      ? "Step 1/7: Preflight reconcile + validate + import dry-run"
+      : "Step 1/7: Preflight validate + import dry-run (icons; sin fotos)",
   );
 
-  runNodeScript(
-    "./scripts/validate-catalog-final.mjs",
-    ["--file", reconciledFile, "--photos", photosDir],
-    validateLog,
-  );
+  let preflightFileToUse = catalogFile;
+  let preflightManifestToUse = null;
 
-  let preflightManifestToUse = imagesManifestPath;
-  if (!fs.existsSync(imagesManifestPath)) {
-    const fakeManifest = {};
-    const raw = fs.readFileSync(reconciledFile, "utf8");
-    const lines = raw.split(/\r?\n/g).filter((line) => line.trim() !== "");
-    const headers = lines[0].split(",").map((h) => h.trim());
-    const idx = headers.indexOf("image_filename");
-    for (let i = 1; i < lines.length; i += 1) {
-      const values = lines[i].split(",");
-      const fileName = (values[idx] ?? "").trim();
-      if (!fileName) continue;
-      fakeManifest[fileName] = `https://preflight.local/${encodeURIComponent(fileName)}`;
-    }
-    fs.writeFileSync(
-      syntheticManifestPath,
-      JSON.stringify({ generated_at: new Date().toISOString(), files: fakeManifest }, null, 2),
-      "utf8",
+  if (imageMode === "photos") {
+    runNodeScript(
+      "./scripts/reconcile-sku-images.mjs",
+      [
+        "--file",
+        catalogFile,
+        "--photos",
+        photosDir,
+        "--out",
+        reconciledFile,
+        "--report-base",
+        reconcileReportBase,
+      ],
+      reconcileLog,
     );
-    preflightManifestToUse = syntheticManifestPath;
+    preflightFileToUse = reconciledFile;
   }
 
-  runNodeScript(
-    "./scripts/import-catalog.mjs",
-    [
-      "--file",
-      reconciledFile,
-      "--mode",
-      "dry-run",
-      "--images-manifest",
-      preflightManifestToUse,
-    ],
-    importDryRunLog,
-  );
+  const validateArgs = ["--file", preflightFileToUse, "--image-mode", imageMode];
+  if (imageMode === "photos") {
+    validateArgs.push("--photos", photosDir);
+  }
+  runNodeScript("./scripts/validate-catalog-final.mjs", validateArgs, validateLog);
+
+  const importDryRunArgs = [
+    "--file",
+    preflightFileToUse,
+    "--mode",
+    "dry-run",
+    "--image-mode",
+    imageMode,
+  ];
+
+  if (imageMode === "photos") {
+    preflightManifestToUse = imagesManifestPath;
+    if (!fs.existsSync(imagesManifestPath)) {
+      const fakeManifest = {};
+      const raw = fs.readFileSync(preflightFileToUse, "utf8");
+      const lines = raw.split(/\r?\n/g).filter((line) => line.trim() !== "");
+      const headers = lines[0].split(",").map((h) => h.trim());
+      const idx = headers.indexOf("image_filename");
+      for (let i = 1; i < lines.length; i += 1) {
+        const values = lines[i].split(",");
+        const fileName = (values[idx] ?? "").trim();
+        if (!fileName) continue;
+        fakeManifest[fileName] = `https://preflight.local/${encodeURIComponent(fileName)}`;
+      }
+      fs.writeFileSync(
+        syntheticManifestPath,
+        JSON.stringify({ generated_at: new Date().toISOString(), files: fakeManifest }, null, 2),
+        "utf8",
+      );
+      preflightManifestToUse = syntheticManifestPath;
+    }
+    importDryRunArgs.push("--images-manifest", preflightManifestToUse);
+  }
+
+  runNodeScript("./scripts/import-catalog.mjs", importDryRunArgs, importDryRunLog);
 
   summary.preflight = {
-    reconciled_file: reconciledFile,
-    reconcile_report_csv: `${reconcileReportBase}.csv`,
-    reconcile_report_json: `${reconcileReportBase}.json`,
-    reconcile_log: reconcileLog,
+    image_mode: imageMode,
+    source_file: catalogFile,
+    reconciled_file: imageMode === "photos" ? reconciledFile : null,
+    preflight_file_used: preflightFileToUse,
+    reconcile_report_csv: imageMode === "photos" ? `${reconcileReportBase}.csv` : null,
+    reconcile_report_json: imageMode === "photos" ? `${reconcileReportBase}.json` : null,
+    reconcile_log: imageMode === "photos" ? reconcileLog : null,
     validate_log: validateLog,
     import_dry_run_log: importDryRunLog,
     manifest_used: preflightManifestToUse,
+    skipped_steps:
+      imageMode === "icons" ? ["reconcile-sku-images", "images-manifest preflight"] : [],
   };
 
   console.log("Step 2/7: Backup completo de tablas live");
@@ -421,35 +450,43 @@ async function main() {
   };
 
   console.log("Step 5/7: Carga limpia (upload + import apply)");
-  let manifestInUse = fs.existsSync(imagesManifestPath) ? imagesManifestPath : null;
+  let manifestInUse =
+    imageMode === "photos" && fs.existsSync(imagesManifestPath) ? imagesManifestPath : null;
   let importReportPath = null;
   if (mode === "apply") {
-    runNodeScript(
-      "./scripts/upload-product-images.mjs",
-      [
-        "--dir",
-        photosDir,
-        "--bucket",
-        bucket,
-        "--output",
-        imagesManifestPath,
-        "--upsert",
-        "true",
-      ],
-      uploadLog,
-    );
-    manifestInUse = imagesManifestPath;
+    if (imageMode === "photos") {
+      runNodeScript(
+        "./scripts/upload-product-images.mjs",
+        [
+          "--dir",
+          photosDir,
+          "--bucket",
+          bucket,
+          "--output",
+          imagesManifestPath,
+          "--upsert",
+          "true",
+        ],
+        uploadLog,
+      );
+      manifestInUse = imagesManifestPath;
+    }
+
+    const importApplyArgs = [
+      "--file",
+      preflightFileToUse,
+      "--mode",
+      "apply",
+      "--image-mode",
+      imageMode,
+    ];
+    if (imageMode === "photos") {
+      importApplyArgs.push("--images-manifest", imagesManifestPath);
+    }
 
     const importApplyResult = runNodeScript(
       "./scripts/import-catalog.mjs",
-      [
-        "--file",
-        reconciledFile,
-        "--mode",
-        "apply",
-        "--images-manifest",
-        imagesManifestPath,
-      ],
+      importApplyArgs,
       importApplyLog,
     );
 
@@ -459,30 +496,32 @@ async function main() {
   }
 
   summary.import = {
+    image_mode: imageMode,
+    source_file_used: preflightFileToUse,
     manifest_path: manifestInUse,
-    upload_log: mode === "apply" ? uploadLog : null,
+    upload_log: mode === "apply" && imageMode === "photos" ? uploadLog : null,
     import_apply_log: mode === "apply" ? importApplyLog : null,
     import_report: importReportPath,
+    skipped_steps:
+      imageMode === "icons" ? ["upload-product-images"] : [],
   };
 
   console.log("Step 6/7: Verificacion post-reset");
   if (mode === "apply") {
-    runNodeScript(
-      "./scripts/live-verify-alignment.mjs",
-      [
-        "--file",
-        reconciledFile,
-        "--photos",
-        photosDir,
-        "--images-manifest",
-        imagesManifestPath,
-        "--expect-events",
-        "0",
-        "--output",
-        verifyOutput,
-      ],
-      verifyLog,
-    );
+    const verifyArgs = [
+      "--file",
+      preflightFileToUse,
+      "--image-mode",
+      imageMode,
+      "--expect-events",
+      "0",
+      "--output",
+      verifyOutput,
+    ];
+    if (imageMode === "photos") {
+      verifyArgs.push("--photos", photosDir, "--images-manifest", imagesManifestPath);
+    }
+    runNodeScript("./scripts/live-verify-alignment.mjs", verifyArgs, verifyLog);
     summary.verification = { report: verifyOutput, passed: true, log: verifyLog };
   } else {
     summary.verification = {

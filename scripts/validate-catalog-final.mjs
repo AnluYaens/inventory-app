@@ -36,6 +36,14 @@ function parseArgs(argv) {
   return args;
 }
 
+function parseImageMode(value) {
+  const mode = (value ?? "photos").trim().toLowerCase();
+  if (!["photos", "icons"].includes(mode)) {
+    throw new Error("--image-mode debe ser photos o icons.");
+  }
+  return mode;
+}
+
 function parseCsvLine(line) {
   const out = [];
   let value = "";
@@ -116,9 +124,12 @@ function main() {
   const filePath = path.resolve(args.get("file") ?? "./client-assets/catalog-final.csv");
   const photosDir = path.resolve(args.get("photos") ?? "./client-assets/photos-sku");
   const requirePdfReference = args.get("require-pdf-reference") === "true";
+  const imageMode = parseImageMode(args.get("image-mode"));
 
   if (!fs.existsSync(filePath)) throw new Error(`No existe archivo: ${filePath}`);
-  if (!fs.existsSync(photosDir)) throw new Error(`No existe carpeta fotos: ${photosDir}`);
+  if (imageMode === "photos" && !fs.existsSync(photosDir)) {
+    throw new Error(`No existe carpeta fotos: ${photosDir}`);
+  }
 
   const { headers, rows } = parseCsv(filePath);
   const required = [
@@ -127,9 +138,11 @@ function main() {
     "size",
     "price",
     "initial_stock",
-    "image_filename",
     "reference_number",
   ];
+  if (imageMode === "photos") {
+    required.push("image_filename");
+  }
   const missingHeaders = required.filter((h) => !headers.includes(h));
   if (!hasCategoryHeader(headers)) {
     missingHeaders.push("category|categoria");
@@ -138,19 +151,21 @@ function main() {
     throw new Error(`Faltan columnas requeridas: ${missingHeaders.join(", ")}`);
   }
 
-  const photoFiles = fs
-    .readdirSync(photosDir)
-    .filter((name) => parseImageDescriptor(name) !== null);
   const photosBySku = new Map();
-  for (const fileName of photoFiles) {
-    const descriptor = parseImageDescriptor(fileName);
-    if (!descriptor) continue;
-    const key = descriptor.baseUpper;
-    if (!photosBySku.has(key)) photosBySku.set(key, []);
-    photosBySku.get(key).push(fileName);
-  }
-  for (const fileList of photosBySku.values()) {
-    fileList.sort((a, b) => a.localeCompare(b));
+  if (imageMode === "photos") {
+    const photoFiles = fs
+      .readdirSync(photosDir)
+      .filter((name) => parseImageDescriptor(name) !== null);
+    for (const fileName of photoFiles) {
+      const descriptor = parseImageDescriptor(fileName);
+      if (!descriptor) continue;
+      const key = descriptor.baseUpper;
+      if (!photosBySku.has(key)) photosBySku.set(key, []);
+      photosBySku.get(key).push(fileName);
+    }
+    for (const fileList of photosBySku.values()) {
+      fileList.sort((a, b) => a.localeCompare(b));
+    }
   }
 
   const seenSkus = new Set();
@@ -210,36 +225,38 @@ function main() {
       errors.push(`Linea ${line}: initial_stock invalido (${initialStock}).`);
     }
 
-    if (!imageFilename) {
-      errors.push(`Linea ${line}: image_filename obligatorio.`);
-    } else {
-      const descriptor = parseImageDescriptor(imageFilename);
-      if (!descriptor) {
-        errors.push(
-          `Linea ${line}: image_filename extension no soportada (${imageFilename}).`,
-        );
+    if (imageMode === "photos") {
+      if (!imageFilename) {
+        errors.push(`Linea ${line}: image_filename obligatorio.`);
       } else {
-        const skuKey = (sku ?? "").toUpperCase();
-        if (skuKey && descriptor.baseUpper !== skuKey) {
+        const descriptor = parseImageDescriptor(imageFilename);
+        if (!descriptor) {
           errors.push(
-            `Linea ${line}: image_filename debe tener basename exacto SKU (${sku}) y recibio (${descriptor.baseName}).`,
+            `Linea ${line}: image_filename extension no soportada (${imageFilename}).`,
           );
-        }
+        } else {
+          const skuKey = (sku ?? "").toUpperCase();
+          if (skuKey && descriptor.baseUpper !== skuKey) {
+            errors.push(
+              `Linea ${line}: image_filename debe tener basename exacto SKU (${sku}) y recibio (${descriptor.baseName}).`,
+            );
+          }
 
-        if (skuKey) {
-          const matches = photosBySku.get(skuKey) ?? [];
-          if (matches.length === 0) {
-            errors.push(
-              `Linea ${line}: no existe foto para SKU en carpeta (${sku}).`,
-            );
-          } else if (matches.length > 1) {
-            errors.push(
-              `Linea ${line}: multiples fotos para SKU (${sku}): ${matches.join(" | ")}.`,
-            );
-          } else if (matches[0] !== imageFilename) {
-            errors.push(
-              `Linea ${line}: image_filename debe coincidir exactamente con archivo detectado (${matches[0]}).`,
-            );
+          if (skuKey) {
+            const matches = photosBySku.get(skuKey) ?? [];
+            if (matches.length === 0) {
+              errors.push(
+                `Linea ${line}: no existe foto para SKU en carpeta (${sku}).`,
+              );
+            } else if (matches.length > 1) {
+              errors.push(
+                `Linea ${line}: multiples fotos para SKU (${sku}): ${matches.join(" | ")}.`,
+              );
+            } else if (matches[0] !== imageFilename) {
+              errors.push(
+                `Linea ${line}: image_filename debe coincidir exactamente con archivo detectado (${matches[0]}).`,
+              );
+            }
           }
         }
       }
@@ -255,8 +272,13 @@ function main() {
   console.log("Validacion OK.");
   console.log(`Archivo: ${filePath}`);
   console.log(`Filas: ${rows.length}`);
+  console.log(`Modo imagen: ${imageMode}`);
   console.log("Formato SKU: libre (sin requerir prefijo de categoria).");
-  console.log("Regla imagen: basename(image_filename) == sku (case-insensitive) y 1 foto por SKU.");
+  if (imageMode === "photos") {
+    console.log("Regla imagen: basename(image_filename) == sku (case-insensitive) y 1 foto por SKU.");
+  } else {
+    console.log("Regla imagen: omitida (modo icons).");
+  }
   if (requirePdfReference) {
     console.log("Regla extra: reference_source obligatorio = pdf");
   }

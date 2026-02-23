@@ -29,6 +29,14 @@ function parseArgs(argv) {
   return args;
 }
 
+function parseImageMode(value) {
+  const mode = (value ?? "photos").trim().toLowerCase();
+  if (!["photos", "icons"].includes(mode)) {
+    throw new Error("--image-mode debe ser photos o icons.");
+  }
+  return mode;
+}
+
 function loadDotEnv() {
   for (const envFile of [".env.local", ".env"]) {
     const envPath = path.resolve(envFile);
@@ -175,19 +183,24 @@ async function main() {
   const filePath = path.resolve(args.get("file") ?? "./client-assets/catalog-final.csv");
   const photosDir = path.resolve(args.get("photos") ?? "./client-assets/photos-sku");
   const manifestPathArg = args.get("images-manifest") ?? "./images-manifest.json";
+  const imageMode = parseImageMode(args.get("image-mode"));
   const expectEvents = parseExpectedEvents(args.get("expect-events") ?? "0");
   const outputPath = path.resolve(
     args.get("output") ?? `./artifacts/live-verify-alignment-${nowStamp()}.json`,
   );
 
   if (!fs.existsSync(filePath)) throw new Error(`No existe archivo: ${filePath}`);
-  if (!fs.existsSync(photosDir)) throw new Error(`No existe carpeta fotos: ${photosDir}`);
+  if (imageMode === "photos" && !fs.existsSync(photosDir)) {
+    throw new Error(`No existe carpeta fotos: ${photosDir}`);
+  }
 
   const manifestPath = path.resolve(manifestPathArg);
-  const manifestMap = fs.existsSync(manifestPath) ? readManifest(manifestPath) : null;
+  const manifestMap =
+    imageMode === "photos" && fs.existsSync(manifestPath) ? readManifest(manifestPath) : null;
 
   const { headers, rows } = parseCsv(filePath);
-  for (const required of ["sku", "image_filename"]) {
+  const requiredHeaders = imageMode === "photos" ? ["sku", "image_filename"] : ["sku"];
+  for (const required of requiredHeaders) {
     if (!headers.includes(required)) {
       throw new Error(`Falta columna requerida en CSV: ${required}`);
     }
@@ -202,7 +215,7 @@ async function main() {
       errors.push(`Linea ${line}: sku vacio.`);
       continue;
     }
-    if (!imageFilename) {
+    if (imageMode === "photos" && !imageFilename) {
       errors.push(`Linea ${line}: image_filename vacio para ${sku}.`);
       continue;
     }
@@ -214,31 +227,33 @@ async function main() {
     csvSkuMap.set(key, { sku, imageFilename, line });
   }
 
-  const photosBySku = new Map();
-  for (const fileName of fs.readdirSync(photosDir)) {
-    const descriptor = parseImageDescriptor(fileName);
-    if (!descriptor) continue;
-    if (!photosBySku.has(descriptor.baseUpper)) photosBySku.set(descriptor.baseUpper, []);
-    photosBySku.get(descriptor.baseUpper).push(fileName);
-  }
-  for (const files of photosBySku.values()) {
-    files.sort((a, b) => a.localeCompare(b));
-  }
+  if (imageMode === "photos") {
+    const photosBySku = new Map();
+    for (const fileName of fs.readdirSync(photosDir)) {
+      const descriptor = parseImageDescriptor(fileName);
+      if (!descriptor) continue;
+      if (!photosBySku.has(descriptor.baseUpper)) photosBySku.set(descriptor.baseUpper, []);
+      photosBySku.get(descriptor.baseUpper).push(fileName);
+    }
+    for (const files of photosBySku.values()) {
+      files.sort((a, b) => a.localeCompare(b));
+    }
 
-  for (const [skuKey, meta] of csvSkuMap.entries()) {
-    const matches = photosBySku.get(skuKey) ?? [];
-    if (matches.length === 0) {
-      errors.push(`CSV SKU sin foto exacta en carpeta: ${meta.sku}`);
-      continue;
-    }
-    if (matches.length > 1) {
-      errors.push(`CSV SKU con multiples fotos exactas: ${meta.sku} -> ${matches.join(" | ")}`);
-      continue;
-    }
-    if (matches[0] !== meta.imageFilename) {
-      errors.push(
-        `CSV SKU ${meta.sku} tiene image_filename=${meta.imageFilename}, esperado=${matches[0]}.`,
-      );
+    for (const [skuKey, meta] of csvSkuMap.entries()) {
+      const matches = photosBySku.get(skuKey) ?? [];
+      if (matches.length === 0) {
+        errors.push(`CSV SKU sin foto exacta en carpeta: ${meta.sku}`);
+        continue;
+      }
+      if (matches.length > 1) {
+        errors.push(`CSV SKU con multiples fotos exactas: ${meta.sku} -> ${matches.join(" | ")}`);
+        continue;
+      }
+      if (matches[0] !== meta.imageFilename) {
+        errors.push(
+          `CSV SKU ${meta.sku} tiene image_filename=${meta.imageFilename}, esperado=${matches[0]}.`,
+        );
+      }
     }
   }
 
@@ -267,58 +282,60 @@ async function main() {
 
   const imageMismatches = [];
   const missingManifestEntries = [];
-  for (const [skuKey, meta] of csvSkuMap.entries()) {
-    const product = dbSkuMap.get(skuKey);
-    if (!product) continue;
+  if (imageMode === "photos") {
+    for (const [skuKey, meta] of csvSkuMap.entries()) {
+      const product = dbSkuMap.get(skuKey);
+      if (!product) continue;
 
-    const currentImageUrl = String(product.image_url ?? "");
-    if (!currentImageUrl) {
-      imageMismatches.push({
-        sku: meta.sku,
-        reason: "image_url vacio en DB",
-        expected: manifestMap ? String(manifestMap[meta.imageFilename] ?? "") : meta.imageFilename,
-        current: "",
-      });
-      continue;
-    }
-
-    if (manifestMap) {
-      const expectedUrl = manifestMap[meta.imageFilename];
-      if (!expectedUrl) {
-        missingManifestEntries.push({
+      const currentImageUrl = String(product.image_url ?? "");
+      if (!currentImageUrl) {
+        imageMismatches.push({
           sku: meta.sku,
-          image_filename: meta.imageFilename,
+          reason: "image_url vacio en DB",
+          expected: manifestMap ? String(manifestMap[meta.imageFilename] ?? "") : meta.imageFilename,
+          current: "",
         });
         continue;
       }
-      if (currentImageUrl !== expectedUrl) {
+
+      if (manifestMap) {
+        const expectedUrl = manifestMap[meta.imageFilename];
+        if (!expectedUrl) {
+          missingManifestEntries.push({
+            sku: meta.sku,
+            image_filename: meta.imageFilename,
+          });
+          continue;
+        }
+        if (currentImageUrl !== expectedUrl) {
+          imageMismatches.push({
+            sku: meta.sku,
+            reason: "image_url distinto al manifest",
+            expected: expectedUrl,
+            current: currentImageUrl,
+          });
+        }
+        continue;
+      }
+
+      const parsedUrl = parseImageDescriptor(currentImageUrl.split("/").pop() ?? "");
+      if (!parsedUrl) {
         imageMismatches.push({
           sku: meta.sku,
-          reason: "image_url distinto al manifest",
-          expected: expectedUrl,
+          reason: "image_url con extension no soportada",
+          expected: meta.imageFilename,
           current: currentImageUrl,
         });
+        continue;
       }
-      continue;
-    }
-
-    const parsedUrl = parseImageDescriptor(currentImageUrl.split("/").pop() ?? "");
-    if (!parsedUrl) {
-      imageMismatches.push({
-        sku: meta.sku,
-        reason: "image_url con extension no soportada",
-        expected: meta.imageFilename,
-        current: currentImageUrl,
-      });
-      continue;
-    }
-    if (parsedUrl.baseUpper !== skuKey) {
-      imageMismatches.push({
-        sku: meta.sku,
-        reason: "basename(image_url) no coincide con SKU",
-        expected: meta.sku,
-        current: parsedUrl.baseName,
-      });
+      if (parsedUrl.baseUpper !== skuKey) {
+        imageMismatches.push({
+          sku: meta.sku,
+          reason: "basename(image_url) no coincide con SKU",
+          expected: meta.sku,
+          current: parsedUrl.baseName,
+        });
+      }
     }
   }
 
@@ -353,8 +370,9 @@ async function main() {
   const report = {
     generated_at: new Date().toISOString(),
     file: filePath,
-    photos_dir: photosDir,
-    images_manifest: manifestMap ? manifestPath : null,
+    image_mode: imageMode,
+    photos_dir: imageMode === "photos" ? photosDir : null,
+    images_manifest: imageMode === "photos" && manifestMap ? manifestPath : null,
     expected_events: expectEvents,
     summary: {
       passed: errors.length === 0,
@@ -385,6 +403,7 @@ async function main() {
 
   console.log("Verificacion live DB vs CSV completada.");
   console.log(`Reporte: ${outputPath}`);
+  console.log(`Modo imagen: ${imageMode}`);
   console.log(JSON.stringify(report.summary, null, 2));
 
   if (errors.length > 0) {
