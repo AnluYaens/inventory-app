@@ -181,19 +181,20 @@ export default function InventoryPage() {
     <AppLayout>
       <div className="p-4 space-y-4 max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl font-bold">Inventario</h1>
             <p className="text-sm text-muted-foreground">
               {products.length} producto{products.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:items-center">
             <Button
               variant="outline"
               size="sm"
               onClick={handleOpenCatalogPdf}
               title={`Abrir catálogo PDF (${catalogPdfUrl})`}
+              className="min-w-0 justify-center"
             >
               <FileText className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Catálogo PDF</span>
@@ -204,19 +205,27 @@ export default function InventoryPage() {
               size="sm"
               onClick={handleRefresh}
               disabled={!isOnline || loading}
+              className="min-w-0 justify-center"
             >
               <RefreshCw
                 className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
               />
-              Actualizar
+              <span className="hidden min-[420px]:inline sm:inline">Actualizar</span>
+              <span className="min-[420px]:hidden sm:hidden">Act.</span>
             </Button>
             <Button
               size="sm"
               onClick={() => void handleExport()}
               disabled={loading || exporting}
+              className="min-w-0 justify-center"
             >
               <FileSpreadsheet className="h-4 w-4 mr-2" />
-              {exporting ? "Exportando..." : "Exportar Excel"}
+              <span className="hidden min-[420px]:inline sm:inline">
+                {exporting ? "Exportando..." : "Exportar Excel"}
+              </span>
+              <span className="min-[420px]:hidden sm:hidden">
+                {exporting ? "..." : "Excel"}
+              </span>
             </Button>
           </div>
         </div>
